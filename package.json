@@ -1,0 +1,19 @@
+{
+  "name": "psql_test",
+  "version": "1.0.0",
+  "description": "PSQL+Node.js test",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@slack/client": "^4.6.0",
+    "@waves/waves-api": "^1.5.1",
+    "pg": "^7.4.3",
+    "restler": "^3.4.0",
+    "serialize-json": "^1.0.2",
+    "waves-transactions": "^1.0.21"
+  }
+}

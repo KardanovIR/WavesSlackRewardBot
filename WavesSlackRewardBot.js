@@ -1,3 +1,13 @@
+/**
+ * Slack bot working with the Wavesplatform.API 
+ *
+ * @author Shushik <silkleopard@yandex.ru>
+ * @version 1.0
+ * @license MIT
+ */
+
+
+
 // Conf
 const CONF = require('./conf.json');
 
