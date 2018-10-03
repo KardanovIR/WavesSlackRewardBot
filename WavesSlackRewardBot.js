@@ -4,8 +4,6 @@
  * @author Shushik <silkleopard@yandex.ru>
  * @version 1.0
  * @license MIT
- *
- * @module WavesSlackRewardBot
  */
 
 
@@ -124,6 +122,42 @@ let WavesSlackRewardBot = (function() {
             if (CONF.DEV) {
                 console.log(exc);
             }
+        }
+
+        /**
+         * @static
+         * @method pluralize
+         *
+         * @param   {number} num
+         * @param   {string|Array} one
+         * @param   {string=} two
+         * @param   {string=} all
+         *
+         * @returns {string}
+         */
+        static pluralize(num, one, two, all) {
+            if (one instanceof Array) {
+                all = one[2];
+                two = one[1];
+                one = one[0];
+            }
+
+            num = Math.abs(num);
+            num %= 100;
+
+            if (num >= 5 && num <= 20) {
+                return all;
+            }
+
+            num %= 10;
+
+            if (num == 1) {
+                return one;
+            } else if (num >= 2 && num <= 4) {
+                return two;
+            }
+
+            return all;
         }
 
         /**
@@ -246,26 +280,26 @@ WavesSlackRewardBot.Node = (function() {
 
         /**
          * @static
-         * @const {string} EVENT_NODE_TRANSFER_ABORTED
+         * @const {string} EVENT_NODE_REQUEST_ABORTED
          */
-        static get EVENT_NODE_TRANSFER_ABORTED() {
-            return 'nodeTransferAborted';
+        static get EVENT_NODE_REQUEST_ABORTED() {
+            return 'nodeRequestAborted';
         }
 
         /**
          * @static
-         * @const {string} EVENT_NODE_TRANSFER_REJECTED
+         * @const {string} EVENT_NODE_REQUEST_REJECTED
          */
-        static get EVENT_NODE_TRANSFER_REJECTED() {
-            return 'nodeTransferRejected';
+        static get EVENT_NODE_REQUEST_REJECTED() {
+            return 'nodeRequestRejected';
         }
 
         /**
          * @static
-         * @const {string} EVENT_NODE_TRANSFER_SUCCEEDED
+         * @const {string} EVENT_NODE_REQUEST_SUCCEEDED
          */
-        static get EVENT_NODE_TRANSFER_SUCCEEDED() {
-            return 'nodeTransferSucceeded';
+        static get EVENT_NODE_REQUEST_SUCCEEDED() {
+            return 'nodeRequestSucceeded';
         }
 
         /**
@@ -298,6 +332,7 @@ WavesSlackRewardBot.Node = (function() {
         _live() {
             // Modules events
             Super.sub(Super.Storage.EVENT_STORAGE_TRANSFER_WAVES, this._route);
+            Super.sub(Super.Storage.EVENT_STORAGE_REQUEST_BALANCE, this._route);
         }
 
         /**
@@ -319,6 +354,11 @@ WavesSlackRewardBot.Node = (function() {
                     this._transferWaves(event.data);
                     break;
 
+                // 
+                case Super.Storage.EVENT_STORAGE_REQUEST_BALANCE:
+                    this._checkBalance(event.data);
+                    break;
+
             }
         }
 
@@ -328,34 +368,77 @@ WavesSlackRewardBot.Node = (function() {
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_NODE_TRANSFER_REJECTED
-         * @fires Self.EVENT_NODE_TRANSFER_ABORTED
-         * @fires Self.EVENT_NODE_TRANSFER_SUCCEEDED
+         * @fires Self.EVENT_NODE_REQUEST_REJECTED
+         * @fires Self.EVENT_NODE_REQUEST_ABORTED
+         * @fires Self.EVENT_NODE_REQUEST_SUCCEEDED
+         */
+        _checkBalance(data) {
+            var
+                url = CONF.WAVES_API.BALANCE_URL.
+                      replace('${address}', data.emitent.address).
+                      replace('${assetId}', CONF.WAVES_API.ASSET_ID);
+
+            // Send balance request to Waves api
+            Restler.get(url).
+            on('fail', (res, xhr) => {
+                data.ok = false;
+                Super.pub(Self.EVENT_NODE_REQUEST_REJECTED, data)
+            }).
+            on('error', (exc, xhr) => {
+                data.ok = false;
+                Super.pub(Self.EVENT_NODE_REQUEST_ABORTED, data);
+            }).
+            on('success', (res, xhr) => {
+                data.balance.count = res.balance;
+                data.balance.asset = res.assetId;
+                Super.pub(Self.EVENT_NODE_REQUEST_SUCCEEDED, data);
+            });
+        }
+
+        /**
+         * @private
+         * @method _transferWaves
+         *
+         * @param {object} data
+         *
+         * @fires Self.EVENT_NODE_REQUEST_REJECTED
+         * @fires Self.EVENT_NODE_REQUEST_REJECTED
+         * @fires Self.EVENT_NODE_REQUEST_REJECTED
          */
         _transferWaves(data) {
             var
                 params = {
                              alias : 'SlackBotTransfer',
                              amount : data.transfer.amount,
-                             recipient : data.recipient.address
+                             recipient : data.recipient.address,
+                             assetId : CONF.WAVES_API.ASSET_ID,
+                             feeAssetId : CONF.WAVES_API.ASSET_ID
                          },
-                request = transfer(data.emitent.phrase, params);
+                request = null;
 
-            // Send reqdy and signed request to Waves api
-            Restler.postJson(CONF.WAVES_API.BROADCAST_PATH, request).
+            // feeAssetId is for production operations only
+            if (CONF.DEV) {
+                params.feeAssetId = null;
+            }
+
+            // Create request JSON object
+            request = transfer(data.emitent.phrase, params);
+
+            // Send ready and signed request to Waves api
+            Restler.postJson(CONF.WAVES_API.TRANSACTION_URL, request).
             on('fail', (res, xhr) => {
-                data.transfer.reject = true;
+                data.ok = false;
                 data.transfer.answer = res.message;
-                Super.pub(Self.EVENT_NODE_TRANSFER_REJECTED, data);
+                Super.pub(Self.EVENT_NODE_REQUEST_REJECTED, data);
             }).
             on('error', (exc, xhr) => {
-                data.transfer.error = true;
-                Super.pub(Self.EVENT_NODE_TRANSFER_ABORTED, data);
+                data.ok = false;
+                Super.pub(Self.EVENT_NODE_REQUEST_ABORTED, data);
             }).
             on('success', (res, xhr) => {
-                data.transfer.success = true;
+                data.ok = true;
                 data.transfer.id = res.id;
-                Super.pub(Self.EVENT_NODE_TRANSFER_SUCCEEDED, data);
+                Super.pub(Self.EVENT_NODE_REQUEST_SUCCEEDED, data);
             });
         }
     }
@@ -384,10 +467,37 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
+         * @const {Array} CMD_GET_TOP
+         */
+        static get CMD_GET_TOP() {
+            return 'top';
+        }
+
+        /**
+         * @static
+         * @const {Array} CMD_GET_BALANCE
+         */
+        static get CMD_GET_BALANCE() {
+            return 'balance';
+        }
+
+        /**
+         * @static
+         * @const {Array} CMD_LIST
+         */
+        static get CMD_LIST() {
+            return [
+                Self.CMD_GET_TOP,
+                Self.CMD_GET_BALANCE
+            ];
+        }
+
+        /**
+         * @static
          * @const {Array} WAVES_ALIASES
          */
         static get WAVES_ALIASES() {
-            return ['thake', 'coin', 'token', 'wave'];
+            return ['thave', 'coin', 'token', 'wave'];
         }
 
         /**
@@ -420,6 +530,22 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get EVENT_SLACK_WAVES_GRANTED() {
             return 'slackWavesGranted';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_SLACK_TOP_REQUESTED
+         */
+        static get EVENT_SLACK_TOP_REQUESTED() {
+            return 'slackTopRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_SLACK_BALANCE_REQUESTED
+         */
+        static get EVENT_SLACK_BALANCE_REQUESTED() {
+            return 'slackBalanceRequested';
         }
 
         /**
@@ -487,6 +613,14 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get ANSWER_INCORRECT_SYNTAX() {
             return `Incorrect syntax. You should write for example: «10 thakes @user_nick»`;
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_BALANCE_COUNTED
+         */
+        static get ANSWER_BALANCE_COUNTED() {
+            return 'You current balance is ${count} ${pluralized}';
         }
 
         /**
@@ -593,8 +727,10 @@ WavesSlackRewardBot.Slack = (function() {
             this._rtm.on('reaction_added', this._routeMessages);
 
             // Modules events
-            Super.sub(Super.Node.EVENT_NODE_TRANSFER_ABORTED, this._route);
-            Super.sub(Super.Node.EVENT_NODE_TRANSFER_REJECTED, this._route);
+            Super.sub(Super.Node.EVENT_NODE_REQUEST_ABORTED, this._route);
+            Super.sub(Super.Node.EVENT_NODE_REQUEST_REJECTED, this._route);
+            Super.sub(Super.Node.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
+            Super.sub(Super.Storage.EVENT_STORAGE_REQUEST_TOP, this._route);
             Super.sub(Super.Storage.EVENT_STORAGE_TRANSFER_COMPLETED, this._route);
         }
 
@@ -609,7 +745,7 @@ WavesSlackRewardBot.Slack = (function() {
             switch (event.type) {
 
                 // Tell that transfer was aborted
-                case Super.Node.EVENT_NODE_TRANSFER_ABORTED:
+                case Super.Node.EVENT_NODE_REQUEST_ABORTED:
                     this._answer(
                         event.channel.id,
                         Self.ANSWER_TRANSACTION_ABORTED,
@@ -618,7 +754,7 @@ WavesSlackRewardBot.Slack = (function() {
                     break;
 
                 // Tell that transfer was rejected
-                case Super.Node.EVENT_NODE_TRANSFER_REJECTED:
+                case Super.Node.EVENT_NODE_REQUEST_REJECTED:
                     this._answer(
                         event.data.channel.id,
                         (
@@ -633,6 +769,26 @@ WavesSlackRewardBot.Slack = (function() {
                     );
                     break;
 
+                //
+                case Super.Node.EVENT_NODE_REQUEST_SUCCEEDED:
+                    if (event.data.balance) {
+                        this._answer(
+                            event.data.channel.id,
+                            (
+                                Self.ANSWER_BALANCE_COUNTED.
+                                replace('${count}', event.data.balance.count).
+                                replace('${pluralized}', Super.pluralize(
+                                    event.data.balance.count,
+                                    CONF.CURRENCY.ONE,
+                                    CONF.CURRENCY.TWO,
+                                    CONF.CURRENCY.ALL
+                                ))
+                            ),
+                            event.data.emitent.id
+                        );
+                    }
+                    break;
+
                 // Tell that transfer was completed
                 case Super.Storage.EVENT_STORAGE_TRANSFER_COMPLETED:
                     this._answer(
@@ -643,6 +799,11 @@ WavesSlackRewardBot.Slack = (function() {
                         ),
                         event.data.emitent.id
                     );
+                    break;
+
+                //
+                case Super.Storage.EVENT_STORAGE_REQUEST_TOP:
+                    this._answerStatTop(event.data);
                     break;
 
             }
@@ -665,14 +826,28 @@ WavesSlackRewardBot.Slack = (function() {
                 return;
             }
 
+            var
+                cmd = -1,
+                text = '';
+
             // Apply message parsers
             switch (event.type) {
 
                 // Regular message
                 case 'message':
                     if (await this._isIM(event.channel).catch(Super.error)) {
-                        this._parseInstantMessage(event);
+                        text = event.text.toString();
+                        cmd = Self.CMD_LIST.indexOf(text.split(' ').shift());
+
+                        if (cmd > -1) {
+                            // Command
+                            this._parseCommandMessage(cmd, event);
+                        } else {
+                            // Instant
+                            this._parseInstantMessage(event);
+                        }
                     } else if (event.text.indexOf(this._me) === 2) {
+                        // Channel
                         this._parseChannelMessage(event);
                     }
                     break;
@@ -684,6 +859,8 @@ WavesSlackRewardBot.Slack = (function() {
 
             }
         }
+
+
 
         /**
          * @async
@@ -704,6 +881,52 @@ WavesSlackRewardBot.Slack = (function() {
             catch(Super.error);
         }
 
+        static get ANSWER_TOP_COUNTED() {
+            return 'Top stat:\n\n';
+        }
+
+        static get ANSWER_TOP_COUNTED_NOTHING() {
+            return 'No transactions yet.';
+        }
+
+        /**
+         * @async
+         * @private
+         * @method _answerStatTop
+         *
+         * @param {object} data
+         * @param {boolean} resume
+         */
+        async _answerStatTop(data, resume = false) {
+            var
+                it0 = -1,
+                last = 0,
+                limit = CONF.SLACK_API.SYMBOLS_LIMIT,
+                buffer = !resume ? Self.ANSWER_TOP_COUNTED : '',
+                item = null;
+
+            // No need to go further
+            if (!data || !data.top.list || !data.top.list.length) {
+                buffer += Self.ANSWER_TOP_COUNTED_NOTHING;
+                this._answer(data.channel.id, buffer);
+                return;
+            }
+
+            last = data.top.list.length - 1;
+
+            while (++it0 < data.top.list.length) {
+                item = data.top.list[it0];
+
+                buffer += `${Self._getTaggedUser(item[0])} ${item[1]}\n`;
+
+                // No need to go further
+                if (buffer.length >= limit || it0 == last) {
+                    this._answer(data.channel.id, buffer);
+                    return;
+                }
+            }
+        }
+
         /**
          * @async
          * @private
@@ -714,6 +937,37 @@ WavesSlackRewardBot.Slack = (function() {
         async _getConversationInfo(id) {
             return await this._web.conversations.info({channel : id}).
                    catch(Super.error);
+        }
+
+        /**
+         * @private
+         * @method _parseCommandMessage
+         *
+         * @param {number} off
+         * @param {Event} event
+         */
+        _parseCommandMessage(offset, event) {
+            switch (Self.CMD_LIST[offset]) {
+
+                // 
+                case Self.CMD_GET_TOP:
+                    Super.pub(Self.EVENT_SLACK_TOP_REQUESTED, {
+                        channel : {id : event.channel},
+                        emitent : {id : event.user},
+                        top : {}
+                    });
+                    break;
+
+                // 
+                case Self.CMD_GET_BALANCE:
+                    Super.pub(Self.EVENT_SLACK_BALANCE_REQUESTED, {
+                        channel : {id : event.channel},
+                        emitent : {id : event.user},
+                        balance : {}
+                    });
+                    break;
+
+            }
         }
 
         /**
@@ -874,6 +1128,25 @@ WavesSlackRewardBot.Storage = (function() {
 
         /**
          * @static
+         * @const {string} SQL_GET_WALLET_ID
+         */
+        static get SQL_GET_WALLET_ID() {
+            return `
+                SELECT
+                    slack_id,
+                    wallet_phrase,
+                    wallet_address
+                FROM
+                    ${CONF.DB.WALLETS_TABLE_NAME}
+                WHERE
+                    slack_id = $1
+                LIMIT
+                    1
+            `;
+        }
+
+        /**
+         * @static
          * @const {string} SQL_GET_WALLETS_IDS
          */
         static get SQL_GET_WALLETS_IDS() {
@@ -917,6 +1190,26 @@ WavesSlackRewardBot.Storage = (function() {
 
         /**
          * @static
+         * @const {string} SQL_GET_TOP_RECIPIENTS
+         */
+        static get SQL_GET_TOP_RECIPIENTS() {
+            return `
+                SELECT
+                    recipient_id,
+                    sum(transaction_amount) AS transaction_amount,
+                    max(transaction_date) AS transaction_date
+                FROM
+                    ${CONF.DB.TRANSACTIONS_TABLE_NAME}
+                GROUP BY
+                    recipient_id
+                ORDER BY
+                    transaction_amount DESC,
+                    transaction_date DESC
+            `;
+        }
+
+        /**
+         * @static
          * @const {string} EVENT_STORAGE_CONNECTED
          */
         static get EVENT_STORAGE_CONNECTED() {
@@ -929,6 +1222,14 @@ WavesSlackRewardBot.Storage = (function() {
          */
         static get EVENT_STORAGE_NOT_CONNECTED() {
             return 'storageNotConnected';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_NO_WALLET
+         */
+        static get EVENT_STORAGE_NO_WALLET() {
+            return 'storageNoWalletFound';
         }
 
         /**
@@ -980,6 +1281,22 @@ WavesSlackRewardBot.Storage = (function() {
         }
 
         /**
+         * @static
+         * @const {string} EVENT_STORAGE_REQUEST_TOP
+         */
+        static get EVENT_STORAGE_REQUEST_TOP() {
+            return 'storageTopRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_REQUEST_BALANCE
+         */
+        static get EVENT_STORAGE_REQUEST_BALANCE() {
+            return 'storageBalanceRequested';
+        }
+
+        /**
          * @constructor
          */
         constructor() {
@@ -1003,7 +1320,9 @@ WavesSlackRewardBot.Storage = (function() {
         _live() {
             // Modules events
             Super.sub(Super.Slack.EVENT_SLACK_WAVES_GRANTED, this._route);
-            Super.sub(Super.Node.EVENT_NODE_TRANSFER_SUCCEEDED, this._route);
+            Super.sub(Super.Slack.EVENT_SLACK_TOP_REQUESTED, this._route);
+            Super.sub(Super.Slack.EVENT_SLACK_BALANCE_REQUESTED, this._route);
+            Super.sub(Super.Node.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
         }
 
         /**
@@ -1020,14 +1339,26 @@ WavesSlackRewardBot.Storage = (function() {
 
             switch (event.type) {
 
-                // Check if wallet exist and send transaction request
+                // Check if wallets exist and send transaction request
                 case Super.Slack.EVENT_SLACK_WAVES_GRANTED:
                     this._checkWallets(event.data);
                     break;
 
+                //
+                case Super.Slack.EVENT_SLACK_TOP_REQUESTED:
+                    this._getStatTop(event.data);
+                    break;
+
+                // Check if wallet exist and send balance request
+                case Super.Slack.EVENT_SLACK_BALANCE_REQUESTED:
+                    this._getStatBalance(event.data);
+                    break;
+
                 // Save transaction info
-                case Super.Node.EVENT_NODE_TRANSFER_SUCCEEDED:
-                    this._addTransaction(event.data);
+                case Super.Node.EVENT_NODE_REQUEST_SUCCEEDED:
+                    if (event.data.transfer) {
+                        this._addTransaction(event.data);
+                    }
                     break;
 
             }
@@ -1067,6 +1398,84 @@ WavesSlackRewardBot.Storage = (function() {
                 () => {Super.pub(Self.EVENT_STORAGE_CONNECTED)},
                 (exc) => {Super.pub(Self.EVENT_STORAGE_NOT_CONNECTED, exc)}
             );
+        }
+
+        /**
+         * @async
+         * @private
+         * @method _getStatBalance
+         *
+         * @param {object} data
+         *
+         * @fires Self.EVENT_STORAGE_REQUEST_BALANCE
+         */
+        async _getStatTop(data) {
+            var
+                stat = await this._request(
+                           Self.SQL_GET_TOP_RECIPIENTS,
+                           [],
+                           'array'
+                       ).catch(Super.error);
+
+            // No need to go further
+            if (!stat || !stat.rowCount) {
+                Super.pub(Self.EVENT_STORAGE_NO_TRANSACTIONS, data);
+                return;
+            }
+
+            // 
+            data.top.list = stat.rows;
+
+            Super.pub(Self.EVENT_STORAGE_REQUEST_TOP, data);
+        }
+
+        /**
+         * @async
+         * @private
+         * @method _getStatBalance
+         *
+         * @param {object} data
+         *
+         * @fires Self.EVENT_STORAGE_REQUEST_BALANCE
+         */
+        async _getStatBalance(data) {
+            var
+                wallet = await this._checkWallet(data);
+
+            // Set emitent address
+            data.emitent.address = wallet[2];
+
+            // 
+            Super.pub(Self.EVENT_STORAGE_REQUEST_BALANCE, data);
+        }
+
+
+        /**
+         * @async
+         * @private
+         * @method _checkWallets
+         *
+         * @param {object} data
+         *
+         * @fires Self.EVENT_STORAGE_NO_WALLET
+         *
+         * @returns {object}
+         */
+        async _checkWallet(data) {
+            var
+                wallet = await this._request(
+                              Self.SQL_GET_WALLET_ID,
+                              [data.emitent.id],
+                              'array'
+                          ).catch(Super.error);
+
+            // No need to go further
+            if (!wallet || !wallet.rowCount) {
+                Super.pub(Self.EVENT_STORAGE_NO_WALLET, data);
+                return null;
+            }
+
+            return wallet.rows[0];
         }
 
         /**
