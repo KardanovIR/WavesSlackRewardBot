@@ -7,6 +7,7 @@
     Create conf.json in the project root directory, with the following structure:
 
     {
+        "DEV" : false,
         "DB" : {
             "port" : "",
             "host" : "",
