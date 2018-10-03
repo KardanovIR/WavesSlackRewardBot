@@ -1,7 +1,7 @@
 {
-  "name": "psql_test",
+  "name": "waves-slack-reward-bot",
   "version": "1.0.0",
-  "description": "PSQL+Node.js test",
+  "description": "Slack bot working with the Wavesplatform.API ",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

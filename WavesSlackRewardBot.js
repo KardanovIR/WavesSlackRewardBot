@@ -4,6 +4,8 @@
  * @author Shushik <silkleopard@yandex.ru>
  * @version 1.0
  * @license MIT
+ *
+ * @module WavesSlackRewardBot
  */
 
 
@@ -31,6 +33,54 @@ let WavesSlackRewardBot = (function() {
 
     // Class definition
     class Self {
+
+        /**
+         * @static
+         * @const {string} MESSAGE_NODE_CONNECTED
+         */
+        static get MESSAGE_NODE_CONNECTED() {
+            return `Waves module is ready`;
+        }
+
+        /**
+         * @static
+         * @const {string} MESSAGE_NODE_NOT_CONNECTED
+         */
+        static get MESSAGE_NODE_NOT_CONNECTED() {
+            return `Waves module isn't ready`;
+        }
+
+        /**
+         * @static
+         * @const {string} MESSAGE_SLACK_CONNECTED
+         */
+        static get MESSAGE_SLACK_CONNECTED() {
+            return `Slack module is ready`;
+        }
+
+        /**
+         * @static
+         * @const {string} MESSAGE_SLACK_NOT_CONNECTED
+         */
+        static get MESSAGE_SLACK_NOT_CONNECTED() {
+            return `Slack module isn't ready`;
+        }
+
+        /**
+         * @static
+         * @const {string} MESSAGE_STORAGE_CONNECTED
+         */
+        static get MESSAGE_STORAGE_CONNECTED() {
+            return `Storage module is ready`;
+        }
+
+        /**
+         * @static
+         * @const {string} MESSAGE_STORAGE_NOT_CONNECTED
+         */
+        static get MESSAGE_STORAGE_NOT_CONNECTED() {
+            return `Storage module isn't ready`;
+        }
 
         /**
          * @static
@@ -62,6 +112,18 @@ let WavesSlackRewardBot = (function() {
          */
         static sub(type, handler) {
             Self.Emitter.on(type, handler);
+        }
+
+        /**
+         * @static
+         * @method error
+         *
+         * @param {object|Error} exc
+         */
+        static error(exc) {
+            if (CONF.DEV) {
+                console.log(exc);
+            }
         }
 
         /**
@@ -108,6 +170,37 @@ let WavesSlackRewardBot = (function() {
             }
 
             switch (event.type) {
+
+                // Waves API module is ready
+                case Self.Node.EVENT_NODE_CONNECTED:
+                    console.log(Self.MESSAGE_NODE_CONNECTED);
+                    break;
+
+                // Waves API module isn't ready
+                case Self.Node.EVENT_NODE_NOT_CONNECTED:
+                    console.log(Self.MESSAGE_NODE_NOT_CONNECTED);
+                    break;
+
+                // Slack module is ready
+                case Self.Slack.EVENT_SLACK_CONNECTED:
+                    console.log(Self.MESSAGE_SLACK_CONNECTED);
+                    break;
+
+                // Slack module isn't ready
+                case Self.Slack.EVENT_SLACK_NOT_CONNECTED:
+                    console.log(Self.MESSAGE_SLACK_NOT_CONNECTED);
+                    break;
+
+                // Storage module is ready
+                case Self.Storage.EVENT_STORAGE_CONNECTED:
+                    console.log(Self.MESSAGE_STORAGE_CONNECTED);
+                    break;
+
+                // Storage module isn't ready
+                case Self.Storage.EVENT_STORAGE_NOT_CONNECTED:
+                    console.log(Self.MESSAGE_STORAGE_NOT_CONNECTED);
+                    break;
+
             }
         }
 
@@ -194,6 +287,7 @@ WavesSlackRewardBot.Node = (function() {
                 Super.pub(Self.EVENT_NODE_CONNECTED);
             } catch (exc) {
                 Super.pub(Self.EVENT_NODE_NOT_CONNECTED);
+                Super.error(exc);
             }
         }
 
@@ -298,6 +392,14 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
+         * @const {Array} REWARDED_REACTIONS
+         */
+        static get REWARDED_REACTIONS() {
+            return ['+1', 'heart'];
+        }
+
+        /**
+         * @static
          * @const {string} EVENT_SLACK_CONNECTED
          */
         static get EVENT_SLACK_CONNECTED() {
@@ -344,7 +446,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_TRANSACTION_REJECTED
          */
         static get ANSWER_TRANSACTION_REJECTED() {
-            return `Your transaction has been rejected.`;
+            return `Your transaction rejected.`;
         }
 
         /**
@@ -352,7 +454,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_TRANSACTION_COMPLETED
          */
         static get ANSWER_TRANSACTION_COMPLETED() {
-            return `You transaction completed.`;
+            return `Your transaction completed.`;
         }
 
         /**
@@ -461,7 +563,8 @@ WavesSlackRewardBot.Slack = (function() {
          */
         async _isIM(id) {
             var
-                info = await this._getConversationInfo(id);
+                info = await this._getConversationInfo(id).
+                       catch(Super.error);
 
             if (info && info.ok) {
                 return info.channel.is_im;
@@ -555,7 +658,7 @@ WavesSlackRewardBot.Slack = (function() {
         async _routeMessages(event) {
             // Skip messages that are from a bot or my own user ID
             if (
-                !event.text ||
+                (!event.text && !event.reaction) ||
                 (event.subtype) ||
                 this._isMe(event.user)
             ) {
@@ -567,7 +670,7 @@ WavesSlackRewardBot.Slack = (function() {
 
                 // Regular message
                 case 'message':
-                    if (await this._isIM(event.channel)) {
+                    if (await this._isIM(event.channel).catch(Super.error)) {
                         this._parseInstantMessage(event);
                     } else if (event.text.indexOf(this._me) === 2) {
                         this._parseChannelMessage(event);
@@ -576,7 +679,7 @@ WavesSlackRewardBot.Slack = (function() {
 
                 // Reaction message
                 case 'reaction_added':
-                    this._parseReactionlMessage(event);
+                    this._parseReactionMessage(event);
                     break;
 
             }
@@ -593,11 +696,12 @@ WavesSlackRewardBot.Slack = (function() {
          */
         async _answer(channel, text, uid) {
             var
-                im = await this._isIM(channel);
+                im = await this._isIM(channel).catch(Super.error);
 
             text = (uid && !im ? Self._getTaggedUser(uid) : '') + ' ' + text;
 
-            await this._web.chat.postMessage({channel, text});
+            await this._web.chat.postMessage({channel, text}).
+            catch(Super.error);
         }
 
         /**
@@ -608,7 +712,8 @@ WavesSlackRewardBot.Slack = (function() {
          * @param {string} id
          */
         async _getConversationInfo(id) {
-            return await this._web.conversations.info({channel : id});
+            return await this._web.conversations.info({channel : id}).
+                   catch(Super.error);
         }
 
         /**
@@ -629,6 +734,7 @@ WavesSlackRewardBot.Slack = (function() {
                 return;
             }
 
+            // Get recipient id and transfer amount
             args = args ? args[0].replace(rexp, '$1 $3').split(' ') : null;
 
             // No need to go further
@@ -637,6 +743,7 @@ WavesSlackRewardBot.Slack = (function() {
                 return;
             }
 
+            // Create and send transfer request object
             this._finishParsing(event.channel, false, event.user, args[1], args[0]);
         }
 
@@ -658,6 +765,7 @@ WavesSlackRewardBot.Slack = (function() {
                 return;
             }
 
+            // Get recipient id and transfer amount
             args = args ? args[0].replace(rexp, '$1 $3').split(' ') : null;
 
             // No need to go further
@@ -666,69 +774,80 @@ WavesSlackRewardBot.Slack = (function() {
                 return;
             }
 
+            // Create and send transfer request object
             this._finishParsing(event.channel, true, event.user, args[1], args[0]);
         }
 
         /**
-         * @todo Emoji reactions messages parsing
-         *
          * @private
-         * @method _parseReaction
+         * @method _parseReactionMessage
          *
          * @param {Event} event
          */
         _parseReactionMessage(event) {
-/*
-            console.log('reaction');
-            console.log(event);
-            console.log('---------------------------------')
-*/
+            // No need to go further
+            if (!event.item_user) {
+                // Don't know who's the recipient
+                return;
+            } else if (Self.REWARDED_REACTIONS.indexOf(event.reaction) === -1) {
+                // Filter unholded reactions
+                return;
+            }
+
+            // Create and send transfer request object
+            this._finishParsing(
+                event.channel,
+                false,
+                event.user,
+                event.item_user,
+                1,
+                false
+            );
         }
 
         /**
          * @private
          * @method _finishGranting
          *
-         * @param {string} cid
+         * @param {string} channel
          * @param {boolean} im
-         * @param {string} eid
-         * @param {number} rid
+         * @param {string} emitent
+         * @param {number} recipient
          * @param {string} amount
+         * @param {boolean} answer
          *
          * @fires Self.EVENT_SLACK_WAVES_GRANTED
          */
-        _finishParsing(cid, im, eid, rid, amount) {
-            var
-                data = {eid, rid, amount};
-
-            var
-                type = Self.EVENT_SLACK_WAVES_GRANTED;
-
+        _finishParsing(channel, im, emitent, recipient, amount, answer = true) {
             amount = Math.floor(amount);
 
             // No need to go further
-            if (isNaN(amount)) {
-                this._answer(cid, Self.ANSWER_INCORRECT_SYNTAX, eid);
+            if (this._isMe(recipient)) {
+                // Don't transfer to bot
+                this._answer(channel, Self.ANSWER_NOT_TO_MYSELF, emitent);
+                return;
+            } else if (this._isSame(emitent, recipient)) {
+                // Don't transfer to yourself
+                this._answer(channel, Self.ANSWER_NOT_TO_YOURSELF, emitent);
+                return;
+            } else if (isNaN(amount)) {
+                // Not a number parsed as amount
+                this._answer(channel, Self.ANSWER_INCORRECT_SYNTAX, emitent);
                 return;
             }
 
-            // No need to go further
-            if (this._isMe(rid)) {
-                this._answer(cid, Self.ANSWER_NOT_TO_MYSELF, eid);
-                return;
-            } else if (this._isSame(eid, rid)) {
-                this._answer(cid, Self.ANSWER_NOT_TO_YOURSELF, eid);
-                return;
-            }
-
-            Super.pub(type, {
-                channel : {id : cid},
-                emitent : {id : eid},
-                recipient : {id : rid},
+            // Send transfer information object to other modules
+            Super.pub(Self.EVENT_SLACK_WAVES_GRANTED, {
+                channel : {id : channel},
+                emitent : {id : emitent},
+                recipient : {id : recipient},
                 transfer : {amount}
             });
 
-            this._answer(cid, Self.ANSWER_THANK_YOU, eid);
+            // Send a success answer
+            if (answer !== false) {
+                this._answer(channel, Self.ANSWER_THANK_YOU, emitent);
+            }
         }
 
     }
@@ -932,7 +1051,7 @@ WavesSlackRewardBot.Storage = (function() {
                 text,
                 values,
                 rowMode
-            }).catch((exc) => {console.log('sql request error', exc)});
+            }).catch(Super.error);
         }
 
         /**
@@ -968,7 +1087,7 @@ WavesSlackRewardBot.Storage = (function() {
                               Self.SQL_GET_WALLETS_IDS,
                               [data.emitent.id, data.recipient.id],
                               'array'
-                          );
+                          ).catch(Super.error);
 
             // No need to go further
             if (!wallets || !wallets.rowCount) {
@@ -1018,7 +1137,7 @@ WavesSlackRewardBot.Storage = (function() {
                                new Date(),
                                data.transfer.amount
                           ]
-                      );
+                      ).catch(Super.error);
 
             // No need to go further
             if (!res || !res.rowCount) {
@@ -1038,4 +1157,5 @@ WavesSlackRewardBot.Storage = (function() {
 
 
 
+// Export module
 module.exports = WavesSlackRewardBot;
