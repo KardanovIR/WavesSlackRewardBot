@@ -1,5 +1,5 @@
 // Libs
-const WavesSlackRewardStorageInstaller = require('./WavesSlackRewardStorageInstaller.js');
+const WavesSlackRewardStorageInstaller = require('./src/WavesSlackRewardStorageInstaller.js');
 
 // Initiate
 let wavesSlackRewardStorageInstaller = new WavesSlackRewardStorageInstaller();

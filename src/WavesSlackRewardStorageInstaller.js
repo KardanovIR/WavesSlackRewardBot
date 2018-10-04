@@ -1,5 +1,5 @@
 // Conf
-const CONF = require('./conf.json');
+const CONF = require('../conf.json');
 
 // libs
 const {Client} = require('pg');

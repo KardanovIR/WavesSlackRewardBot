@@ -1,5 +1,5 @@
 // Conf
-const CONF = require('./conf.json');
+const CONF = require('../conf.json');
 
 // libs
 const {Client} = require('pg');
@@ -68,12 +68,7 @@ let SlackRewardBotWalletsFiller = (function() {
             }
 
             seed = new this._modules.node.Seed.create();
-/*
 
-            
-*/
-
-//             console.log(data.id, 'sdfsdfsdfsdfsfsd', 'sdfsdfse333fsf343');
             this._modules.storage.query({
                 text : Self.SQL_WALLET_ADD,
                 values : [

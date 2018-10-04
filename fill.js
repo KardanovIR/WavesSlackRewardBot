@@ -1,5 +1,5 @@
 // Libs
-const WavesSlackRewardBotWalletsFiller = require('./WavesSlackRewardBotWalletsFiller.js');
+const WavesSlackRewardBotWalletsFiller = require('./src/WavesSlackRewardBotWalletsFiller.js');
 
 // Initiate
 let wavesSlackRewardBotWalletsFiller = new WavesSlackRewardBotWalletsFiller();

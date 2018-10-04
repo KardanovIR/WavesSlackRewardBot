@@ -1,5 +1,5 @@
 // Libs
-const WavesSlackRewardBot = require('./WavesSlackRewardBot.js');
+const WavesSlackRewardBot = require('./src/WavesSlackRewardBot.js');
 
 // Initiate
 let wavesSlackRewardBot = new WavesSlackRewardBot();

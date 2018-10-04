@@ -9,7 +9,7 @@
 
 
 // Conf
-const CONF = require('./conf.json');
+const CONF = require('../conf.json');
 
 // libs
 const Restler = require('restler');
@@ -475,6 +475,14 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
+         * @const {Array} CMD_PING
+         */
+        static get CMD_PING() {
+            return 'ping';
+        }
+
+        /**
+         * @static
          * @const {Array} CMD_GET_ALL
          */
         static get CMD_GET_ALL() {
@@ -503,6 +511,7 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get CMD_LIST() {
             return [
+                Self.CMD_PING,
                 Self.CMD_GET_ALL,
                 Self.CMD_GET_TOP,
                 Self.CMD_GET_BALANCE
@@ -579,6 +588,14 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get REGEXP_INSTANT_MESSAGE() {
             return `[\\s\\S]*(\\d+)[\\s\\S]+(${Self.WAVES_ALIASES.join('s?|')}s?)[\\s\\S]+<@([^>]+)>[\\s\\S]*`;
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_PONG
+         */
+        static get ANSWER_PONG() {
+            return `Wut?`;
         }
 
         /**
@@ -891,7 +908,7 @@ WavesSlackRewardBot.Slack = (function() {
                 // Regular message
                 case 'message':
                     if (await this._isIM(event.channel).catch(Super.error)) {
-                        text = event.text.toString();
+                        text = event.text.toString().toLowerCase();
                         cmd = Self.CMD_LIST.indexOf(text.split(' ').shift());
 
                         if (cmd > -1) {
@@ -1025,6 +1042,11 @@ WavesSlackRewardBot.Slack = (function() {
          */
         _parseCommandMessage(offset, event) {
             switch (Self.CMD_LIST[offset]) {
+
+                // 
+                case Self.CMD_PING:
+                    this._answer(event.channel, Self.ANSWER_PONG, event.user);
+                    break;
 
                 // 
                 case Self.CMD_GET_ALL:
