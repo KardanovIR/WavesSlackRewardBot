@@ -692,11 +692,11 @@ WavesSlackRewardBot.Slack = (function() {
             this._routeMessages = this._routeMessages.bind(this);
 
             // For interactive operations
-            this._rtm = new RTMClient(CONF.SLACK_API.token);
+            this._rtm = new RTMClient(CONF.SLACK_API.TOKEN);
             this._rtm.start();
 
             // For simple operations
-            this._web = new WebClient(CONF.SLACK_API.token);
+            this._web = new WebClient(CONF.SLACK_API.TOKEN);
 
             // Add event handlers
             this._live();

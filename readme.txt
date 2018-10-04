@@ -18,16 +18,22 @@
             "TRANSACTIONS_TABLE_NAME" : "transactions"
         },
         "SLACK_API" : {
-            "token" : "xoxb-${SLACK_BOT_TOKEN}",
-            "workspace" : "xoxb-${SLACK_WORKSPACE_TOKEN}"
+            "SYMBOLS_LIMIT" : 3950,
+            "TOKEN" : "xoxb-your-slack-bot-token",
+            "WORKSPACE" : "xoxb-your-slack-workspace-token"
+        },
+        "CURRENCY" : {
+            "ONE" : "coin",
+            "TWO" : "coins",
+            "ALL" : "coins"
         },
         "WAVES_API" : {
-            "BROADCAST_PATH" : "",
-            "CONFIG_ALIAS" : "",
-            "FEE_AMOUNT" : 100000,
-            "FEE_CURRENCY" : "WAVES",
-            "ASSET_CURRENCY" : "WAVES",
-            "TRANSFER_TIMEOUT" : 5000,
+            "BALANCE_URL" : "url_to_node_api/${address}/${assetId}",
+            "TRANSACTION_URL" : "url_to_node_api/transactions/broadcast",
+            "REQUEST_TIMEOUT" : 5000,
+            "CONFIG_ALIAS" : "config type",
+            "ASSET_ID" : "your_asset_id_hash",
             "TRANSFER_LINK" : "https://wavesexplorer.com/tx/"
         }
     }
+
