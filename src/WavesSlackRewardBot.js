@@ -908,8 +908,8 @@ WavesSlackRewardBot.Slack = (function() {
                 // Regular message
                 case 'message':
                     if (await this._isIM(event.channel).catch(Super.error)) {
-                        text = event.text.toString().toLowerCase();
-                        cmd = Self.CMD_LIST.indexOf(text.split(' ').shift());
+                        text = event.text.toString().split(' ').shift().toLowerCase();
+                        cmd = Self.CMD_LIST.indexOf(text);
 
                         if (cmd > -1) {
                             // Command
