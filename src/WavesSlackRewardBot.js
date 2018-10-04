@@ -483,18 +483,34 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
-         * @const {Array} CMD_GET_ALL
+         * @const {Array} CMD_HELP
          */
-        static get CMD_GET_ALL() {
-            return 'statall';
+        static get CMD_HELP() {
+            return 'help';
         }
 
         /**
          * @static
-         * @const {Array} CMD_GET_TOP
+         * @const {Array} CMD_GET_SEED
          */
-        static get CMD_GET_TOP() {
-            return 'stattop';
+        static get CMD_GET_SEED() {
+            return 'seed';
+        }
+
+        /**
+         * @static
+         * @const {Array} CMD_GET_STAT
+         */
+        static get CMD_GET_STAT() {
+            return 'stat';
+        }
+
+        /**
+         * @static
+         * @const {Array} CMD_GET_ADDRESS
+         */
+        static get CMD_GET_ADDRESS() {
+            return 'address';
         }
 
         /**
@@ -512,8 +528,10 @@ WavesSlackRewardBot.Slack = (function() {
         static get CMD_LIST() {
             return [
                 Self.CMD_PING,
-                Self.CMD_GET_ALL,
-                Self.CMD_GET_TOP,
+                Self.CMD_HELP,
+                Self.CMD_GET_SEED,
+                Self.CMD_GET_STAT,
+                Self.CMD_GET_ADDRESS,
                 Self.CMD_GET_BALANCE
             ];
         }
@@ -523,7 +541,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {Array} WAVES_ALIASES
          */
         static get WAVES_ALIASES() {
-            return ['thave', 'coin', 'token', 'wave'];
+            return ['thave', 'coin', 'token'];
         }
 
         /**
@@ -576,6 +594,22 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
+         * @const {string} EVENT_SLACK_SEED_REQUESTED
+         */
+        static get EVENT_SLACK_SEED_REQUESTED() {
+            return 'slackSeedRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_SLACK_STAT_REQUESTED
+         */
+        static get EVENT_SLACK_STAT_REQUESTED() {
+            return 'slackStatRequested';
+        }
+
+        /**
+         * @static
          * @const {string} EVENT_SLACK_BALANCE_REQUESTED
          */
         static get EVENT_SLACK_BALANCE_REQUESTED() {
@@ -584,10 +618,18 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
+         * @const {string} EVENT_SLACK_ADDRESS_REQUESTED
+         */
+        static get EVENT_SLACK_ADDRESS_REQUESTED() {
+            return 'slackAddressRequested';
+        }
+
+        /**
+         * @static
          * @const {string} REGEXP_INSTANT_MESSAGE
          */
         static get REGEXP_INSTANT_MESSAGE() {
-            return `[\\s\\S]*(\\d+)[\\s\\S]+(${Self.WAVES_ALIASES.join('s?|')}s?)[\\s\\S]+<@([^>]+)>[\\s\\S]*`;
+            return `(\\d+)[\\s\\S]+(${Self.WAVES_ALIASES.join('s?|')}s?)[\\s\\S]+<@([^>]+)>[\\s\\S]*`;
         }
 
         /**
@@ -595,34 +637,42 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_PONG
          */
         static get ANSWER_PONG() {
-            return `Wut?`;
+            return 'Wut?';
         }
 
         /**
          * @static
-         * @const {string} ANSWER_TRANSACTION_ABORTED
+         * @const {string} ANSWER_HELP
          */
-        static get ANSWER_TRANSACTION_ABORTED() {
+        static get ANSWER_HELP() {
+            return `Available commands:\n\n— ${Self.CMD_LIST.join(',\n— ')}`;
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_NODE_REQUEST_ABORTED
+         */
+        static get ANSWER_NODE_REQUEST_ABORTED() {
             return `
-                Oops! Seems like some serious internal error has been happened while transaction process.
+                Oops! Seems like some serious internal error has been happened while transaction process.\n
                 Try to make it later.
             `;
         }
 
         /**
          * @static
-         * @const {string} ANSWER_TRANSACTION_REJECTED
+         * @const {string} ANSWER_NODE_REQUEST_REJECTED
          */
-        static get ANSWER_TRANSACTION_REJECTED() {
-            return `Your transaction rejected.`;
+        static get ANSWER_NODE_REQUEST_REJECTED() {
+            return 'Your request rejected.';
         }
 
         /**
          * @static
-         * @const {string} ANSWER_TRANSACTION_COMPLETED
+         * @const {string} ANSWER_TRANSFER_COMPLETED
          */
-        static get ANSWER_TRANSACTION_COMPLETED() {
-            return `Your transaction completed.`;
+        static get ANSWER_TRANSFER_COMPLETED() {
+            return 'Your request completed. (*<${link}|${hash}>*)';
         }
 
         /**
@@ -630,7 +680,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_THANK_YOU
          */
         static get ANSWER_THANK_YOU() {
-            return `Will try to do immediately. Thanks for your generosity.`;
+            return 'Will try to do immediately. Thanks for your generosity.';
         }
 
         /**
@@ -638,7 +688,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_NOT_TO_MYSELF
          */
         static get ANSWER_NOT_TO_MYSELF() {
-            return `I cannot afford it. I'm at the service.`;
+            return 'I cannot afford it. I\'m at the service.';
         }
 
         /**
@@ -646,7 +696,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_NOT_TO_YOURSELF
          */
         static get ANSWER_NOT_TO_YOURSELF() {
-            return `You're trying to transfer to yourself.`;
+            return 'You\'re trying to transfer to yourself.';
         }
 
         /**
@@ -654,15 +704,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_INCORRECT_SYNTAX
          */
         static get ANSWER_INCORRECT_SYNTAX() {
-            return `Incorrect syntax. You should write for example: «10 thakes @user_nick»`;
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_BALANCE_COUNTED
-         */
-        static get ANSWER_BALANCE_COUNTED() {
-            return 'You current balance is ${count} ${pluralized}';
+            return 'Incorrect syntax. You should write for example: «*10 thakes @user_nick*»';
         }
 
         /**
@@ -687,6 +729,106 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get ANSWER_TOP_COUNTED_NOTHING() {
             return 'No transactions yet.';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_YOUR_SEED_IS
+         */
+        static get ANSWER_YOUR_SEED_IS() {
+            return 'Your wallet seed is *${seed}*';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_YOUR_SEED_IS_UNKNOWN
+         */
+        static get ANSWER_YOUR_SEED_IS_UNKNOWN() {
+            return Self.ANSWER_YOUR_SEED_IS.
+                   replace('${seed}', 'unknown');
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_YOUR_ADDRESS_IS
+         */
+        static get ANSWER_YOUR_ADDRESS_IS() {
+            return 'Your wallet address is *${address}*';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_YOUR_ADDRESS_IS_UNKNOWN
+         */
+        static get ANSWER_YOUR_ADDRESS_IS_UNKNOWN() {
+            return Self.ANSWER_YOUR_ADDRESS_IS.
+                   replace('${address}', 'unknown');
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_YOUR_BALANCE_IS
+         */
+        static get ANSWER_YOUR_BALANCE_IS() {
+            return 'Your wallet balance is *${count}* ${pluralized}';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_YOUR_BALANCE_ISNT_COUNTED
+         */
+        static get ANSWER_YOUR_BALANCE_ISNT_COUNTED() {
+            return Self.ANSWER_YOUR_BALANCE_IS.
+                   replace('${count}', 'unreachable').
+                   replace('${pluralized}', '');
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_STAT_REQUEST_FAILED
+         */
+        static get ANSWER_STAT_REQUEST_FAILED() {
+            return 'Cannot compute';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_STAT_REQUEST_SUCCEEDED
+         */
+        static get ANSWER_STAT_REQUEST_SUCCEEDED() {
+            return 'Statistics for ${head}:\n${body}';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_STAT_REQUEST_ITEM
+         */
+        static get ANSWER_STAT_REQUEST_ITEM() {
+            return '\n${user} *${thaves}*';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_STAT_REQUEST_BREAK
+         */
+        static get ANSWER_STAT_REQUEST_BREAK() {
+            return '\n…';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_STAT_REQUEST_HEAD_FOR_MONTH
+         */
+        static get ANSWER_STAT_REQUEST_HEAD_FOR_MONTH() {
+            return 'month';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_STAT_REQUEST_HEAD_FOR_BALANCES
+         */
+        static get ANSWER_STAT_REQUEST_HEAD_FOR_BALANCES() {
+            return 'balances';
         }
 
         /**
@@ -796,9 +938,13 @@ WavesSlackRewardBot.Slack = (function() {
             Super.sub(Super.Node.EVENT_NODE_REQUEST_ABORTED, this._route);
             Super.sub(Super.Node.EVENT_NODE_REQUEST_REJECTED, this._route);
             Super.sub(Super.Node.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
-            Super.sub(Super.Storage.EVENT_STORAGE_REQUEST_ALL, this._route);
-            Super.sub(Super.Storage.EVENT_STORAGE_REQUEST_TOP, this._route);
             Super.sub(Super.Storage.EVENT_STORAGE_TRANSFER_COMPLETED, this._route);
+            Super.sub(Super.Storage.EVENT_STORAGE_SEED_REQUEST_FAILED, this._route);
+            Super.sub(Super.Storage.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED, this._route);
+            Super.sub(Super.Storage.EVENT_STORAGE_STAT_REQUEST_FAILED, this._route);
+            Super.sub(Super.Storage.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED, this._route);
+            Super.sub(Super.Storage.EVENT_STORAGE_ADDRESS_REQUEST_FAILED, this._route);
+            Super.sub(Super.Storage.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED, this._route);
         }
 
         /**
@@ -813,69 +959,54 @@ WavesSlackRewardBot.Slack = (function() {
 
                 // Tell that transfer was aborted
                 case Super.Node.EVENT_NODE_REQUEST_ABORTED:
-                    this._answer(
-                        event.channel.id,
-                        Self.ANSWER_TRANSACTION_ABORTED,
-                        event.emitent.id
-                    );
+                    this._answerDefaultNodeRequestAbort(event.data);
                     break;
 
                 // Tell that transfer was rejected
                 case Super.Node.EVENT_NODE_REQUEST_REJECTED:
-                    this._answer(
-                        event.data.channel.id,
-                        (
-                            Self.ANSWER_TRANSACTION_REJECTED +
-                            (
-                                event.data.transfer.answer ?
-                                ' ' + event.data.transfer.answer :
-                                ''
-                            )
-                        ),
-                        event.data.emitent.id
-                    );
+                    this._answerDefaultNodeRequestReject(event.data);
                     break;
 
                 //
                 case Super.Node.EVENT_NODE_REQUEST_SUCCEEDED:
                     if (event.data.balance) {
-                        this._answer(
-                            event.data.channel.id,
-                            (
-                                Self.ANSWER_BALANCE_COUNTED.
-                                replace('${count}', event.data.balance.count).
-                                replace('${pluralized}', Super.pluralize(
-                                    event.data.balance.count,
-                                    CONF.CURRENCY.ONE,
-                                    CONF.CURRENCY.TWO,
-                                    CONF.CURRENCY.ALL
-                                ))
-                            ),
-                            event.data.emitent.id
-                        );
+                        this._answerMyBalance(event.data);
                     }
                     break;
 
                 // Tell that transfer was completed
                 case Super.Storage.EVENT_STORAGE_TRANSFER_COMPLETED:
-                    this._answer(
-                        event.data.channel.id,
-                        (
-                            Self.ANSWER_TRANSACTION_COMPLETED +
-                            ` (${CONF.WAVES_API.TRANSFER_LINK}${event.data.transfer.id})`
-                        ),
-                        event.data.emitent.id
-                    );
+                    this._answerTransferCompleted(event.data)
                     break;
 
-                // Request all users statistics
-                case Super.Storage.EVENT_STORAGE_REQUEST_ALL:
-                    this._answerStatAll(event.data);
+                // 
+                case Super.Storage.EVENT_STORAGE_SEED_REQUEST_FAILED:
+                    this._answer(event.data.channel.id, Self.ANSWER_YOUR_SEED_IS_UNKNOWN);
                     break;
 
-                // Request statistics for current month
-                case Super.Storage.EVENT_STORAGE_REQUEST_TOP:
-                    this._answerStatTop(event.data);
+                // 
+                case Super.Storage.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED:
+                    this._answerMySeed(event.data);
+                    break;
+
+                // 
+                case Super.Storage.EVENT_STORAGE_ADDRESS_REQUEST_FAILED:
+                    this._answer(event.data.channel.id, Self.ANSWER_ADDRESS_REQUEST_FAILED);
+                    break;
+
+                // 
+                case Super.Storage.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED:
+                    this._answerMyAddress(event.data);
+                    break;
+
+                // 
+                case Super.Storage.EVENT_STORAGE_STAT_REQUEST_FAILED:
+                    this._answer(event.data.channel.id, Self.ANSWER_STAT_REQUEST_FAILED);
+                    break;
+
+                // 
+                case Super.Storage.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED:
+                    this._answerStat(event.data)
                     break;
 
             }
@@ -957,68 +1088,157 @@ WavesSlackRewardBot.Slack = (function() {
         /**
          * @async
          * @private
-         * @method _answerStatAll
+         * @method _answerDefaultNodeRequestAbort
          *
          * @param {object} data
          */
-        async _answerStatAll(data) {
-            this._answerStatTop(data);
+        async _answerDefaultNodeRequestAbort(data) {
+            this._answer(
+                data.channel.id,
+                Self.ANSWER_NODE_REQUEST_ABORTED,
+                data.emitent.id
+            );
         }
 
         /**
          * @async
          * @private
-         * @method _answerStatTop
+         * @method _answerDefaultNodeRequestReject
          *
          * @param {object} data
          */
-        async _answerStatTop(data) {
-            
+        async _answerDefaultNodeRequestReject(data) {
+            this._answer(
+                data.channel.id,
+                (
+                    Self.ANSWER_NODE_REQUEST_REJECTED +
+                    (data.transfer.answer ? ' ' + data.transfer.answer : '')
+                ),
+                data.emitent.id
+            );
+        }
+
+        /**
+         * @async
+         * @private
+         * @method _answerTransferCompleted
+         *
+         * @param {object} data
+         */
+        async _answerTransferCompleted(data) {
+            var
+                link = CONF.WAVES_API.TRANSFER_LINK.
+                       replace('${transactionId}', data.transfer.id),
+                text = Self.ANSWER_TRANSFER_COMPLETED.
+                       replace('${link}', link).
+                       replace('${hash}', data.transfer.id);
+
+            this._answer(data.channel.id, text, data.emitent.id);
+        }
+
+        /**
+         * @async
+         * @private
+         * @method _answerMySeed
+         *
+         * @param {object} data
+         */
+        async _answerMySeed(data) {
+            var
+                text = Self.ANSWER_YOUR_SEED_IS.
+                       replace('${seed}', data.emitent.seed);
+
+            this._answer(data.channel.id, text);
+        }
+
+        /**
+         * @async
+         * @private
+         * @method _answerMyAddress
+         *
+         * @param {object} data
+         */
+        async _answerMyAddress(data) {
+            var
+                text = Self.ANSWER_YOUR_ADDRESS_IS.
+                       replace('${address}', data.emitent.address);
+
+            this._answer(data.channel.id, text);
+        }
+
+        /**
+         * @async
+         * @private
+         * @method _answerMyBalance
+         *
+         * @param {object} data
+         */
+        async _answerMyBalance(data) {
+            // No need to go further
+            if (!data || !data.balance || !data.balance.count) {
+                this._answer(data.channel.id, Self.ANSWER_YOUR_BALANCE_ISNT_COUNTED);
+                return;
+            }
+
+            this._answer(
+                data.channel.id,
+                (
+                    Self.ANSWER_YOUR_BALANCE_IS.
+                    replace('${count}', data.balance.count).
+                    replace('${pluralized}', Super.pluralize(
+                        data.balance.count,
+                        CONF.CURRENCY.ONE,
+                        CONF.CURRENCY.TWO,
+                        CONF.CURRENCY.ALL
+                    ))
+                ),
+                data.emitent.id
+            );
+        }
+
+        /**
+         * @async
+         * @private
+         * @method _answerStat
+         *
+         * @param {object} data
+         */
+        async _answerStat(data) {
             var
                 it0 = -1,
-                last = 0,
-                limit = CONF.SLACK_API.SYMBOLS_LIMIT,
+                last = data.stat.list.length - 1,
+                symbols = CONF.SLACK_API.SYMBOLS_LIMIT,
+                alias = (
+                            data.stat.alias ?
+                            data.stat.alias :
+                            Self.ANSWER_STAT_REQUEST_HEAD_FOR_MONTH
+                        ).toUpperCase(),
                 buffer = '',
-                list = null,
+                list = data.stat.list,
                 item = null;
 
-            // No need to go further
-            if (!data && !data.top && !data.all) {
-                buffer += Self.ANSWER_TOP_COUNTED_NOTHING;
-                this._answer(data.channel.id, buffer);
-                return;
-            }
-
-            // For two types of request
-            if (data.top) {
-                list = data.top.list;
-                buffer = Self.ANSWER_TOP_COUNTED;
-            } else if (data.all) {
-                list = data.all.list;
-                buffer = Self.ANSWER_ALL_COUNTED;
-            }
-
-            // No need to go further
-            if (!list || !list.length) {
-                buffer += Self.ANSWER_TOP_COUNTED_NOTHING;
-                this._answer(data.channel.id, buffer);
-                return;
-            }
-
-            // Compile answer buffer
-            last = list.length - 1;
-
+            // Compile answer message
             while (++it0 < list.length) {
                 item = list[it0];
 
-                buffer += `${Self._getTaggedUser(item[0])} ${item[1]}\n`;
+                buffer += Self.ANSWER_STAT_REQUEST_ITEM.
+                          replace('${user}', Self._getTaggedUser(item[0])).
+                          replace('${thaves}', item[1]);
 
-                // No need to go further
-                if (buffer.length >= limit || it0 == last) {
-                    this._answer(data.channel.id, buffer);
-                    return;
+                // Slack message limit
+                if (buffer.length >= symbols) {
+                    buffer += Self.ANSWER_STAT_REQUEST_BREAK;
+                    break;
                 }
             }
+
+            alias = 'ANSWER_STAT_REQUEST_HEAD_FOR_' + alias;
+            buffer = Self.ANSWER_STAT_REQUEST_SUCCEEDED.
+                     replace('${head}', Self[alias]).
+                     replace('${body}', buffer);
+
+            // Send
+            this._answer(data.channel.id, buffer);
         }
 
         /**
@@ -1049,6 +1269,11 @@ WavesSlackRewardBot.Slack = (function() {
                     break;
 
                 // 
+                case Self.CMD_HELP:
+                    this._answer(event.channel, Self.ANSWER_HELP, event.user);
+                    break;
+
+                // 
                 case Self.CMD_GET_ALL:
                     Super.pub(Self.EVENT_SLACK_ALL_REQUESTED, {
                         channel : {id : event.channel},
@@ -1063,6 +1288,31 @@ WavesSlackRewardBot.Slack = (function() {
                         channel : {id : event.channel},
                         emitent : {id : event.user},
                         top : {}
+                    });
+                    break;
+
+                // 
+                case Self.CMD_GET_SEED:
+                    Super.pub(Self.EVENT_SLACK_SEED_REQUESTED, {
+                        channel : {id : event.channel},
+                        emitent : {id : event.user}
+                    });
+                    break;
+
+                //
+                case Self.CMD_GET_STAT:
+                    Super.pub(Self.EVENT_SLACK_STAT_REQUESTED, {
+                        channel : {id : event.channel},
+                        emitent : {id : event.user},
+                        stat : {alias : event.text.split(/\s+/)[1]}
+                    });
+                    break;
+
+                // 
+                case Self.CMD_GET_ADDRESS:
+                    Super.pub(Self.EVENT_SLACK_ADDRESS_REQUESTED, {
+                        channel : {id : event.channel},
+                        emitent : {id : event.user}
                     });
                     break;
 
@@ -1087,7 +1337,7 @@ WavesSlackRewardBot.Slack = (function() {
         _parseChannelMessage(event) {
             var
                 waves = 0,
-                rexp = new RegExp(Self._getTaggedUser(this._me) + Self.REGEXP_INSTANT_MESSAGE, 'g'),
+                rexp = new RegExp(Self._getTaggedUser(this._me) + '\\s+' + Self.REGEXP_INSTANT_MESSAGE, 'g'),
                 args = event.text.match(rexp);
 
             // No need to go further
@@ -1118,7 +1368,7 @@ WavesSlackRewardBot.Slack = (function() {
         _parseInstantMessage(event) {
             var
                 waves = 0,
-                rexp = new RegExp(Self.REGEXP_INSTANT_MESSAGE, 'g'),
+                rexp = new RegExp('^' + Self.REGEXP_INSTANT_MESSAGE, 'g'),
                 args = event.text.match(rexp);
 
             // No need to go further
@@ -1412,18 +1662,34 @@ WavesSlackRewardBot.Storage = (function() {
 
         /**
          * @static
-         * @const {string} EVENT_STORAGE_REQUEST_ALL
+         * @const {string} EVENT_STORAGE_SEED_REQUEST_FAILED
          */
-        static get EVENT_STORAGE_REQUEST_ALL() {
-            return 'storageAllRequested';
+        static get EVENT_STORAGE_SEED_REQUEST_FAILED() {
+            return 'storageSeedRequestFailed';
         }
 
         /**
          * @static
-         * @const {string} EVENT_STORAGE_REQUEST_TOP
+         * @const {string} EVENT_STORAGE_SEED_REQUEST_SUCCEEDED
          */
-        static get EVENT_STORAGE_REQUEST_TOP() {
-            return 'storageTopRequested';
+        static get EVENT_STORAGE_SEED_REQUEST_SUCCEEDED() {
+            return 'storageSeedRequestSucceeded';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_ADDRESS_REQUEST_FAILED
+         */
+        static get EVENT_STORAGE_ADDRESS_REQUEST_FAILED() {
+            return 'storageAddressRequestFailed';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED
+         */
+        static get EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED() {
+            return 'storageAddressRequestSucceeded';
         }
 
         /**
@@ -1432,6 +1698,22 @@ WavesSlackRewardBot.Storage = (function() {
          */
         static get EVENT_STORAGE_REQUEST_BALANCE() {
             return 'storageBalanceRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_STAT_REQUEST_FAILED
+         */
+        static get EVENT_STORAGE_STAT_REQUEST_FAILED() {
+            return 'storageBalanceRequestFailed';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_STAT_REQUEST_SUCCEEDED
+         */
+        static get EVENT_STORAGE_STAT_REQUEST_SUCCEEDED() {
+            return 'storageBalanceRequestSucceeded';
         }
 
         /**
@@ -1460,6 +1742,9 @@ WavesSlackRewardBot.Storage = (function() {
             Super.sub(Super.Slack.EVENT_SLACK_WAVES_GRANTED, this._route);
             Super.sub(Super.Slack.EVENT_SLACK_ALL_REQUESTED, this._route);
             Super.sub(Super.Slack.EVENT_SLACK_TOP_REQUESTED, this._route);
+            Super.sub(Super.Slack.EVENT_SLACK_SEED_REQUESTED, this._route);
+            Super.sub(Super.Slack.EVENT_SLACK_STAT_REQUESTED, this._route);
+            Super.sub(Super.Slack.EVENT_SLACK_ADDRESS_REQUESTED, this._route);
             Super.sub(Super.Slack.EVENT_SLACK_BALANCE_REQUESTED, this._route);
             Super.sub(Super.Node.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
         }
@@ -1493,9 +1778,24 @@ WavesSlackRewardBot.Storage = (function() {
                     this._getStatTop(event.data);
                     break;
 
+                // 
+                case Super.Slack.EVENT_SLACK_SEED_REQUESTED:
+                    this._getMySeed(event.data);
+                    break;
+
+                //
+                case Super.Slack.EVENT_SLACK_STAT_REQUESTED:
+                    this._getStat(event.data);
+                    break;
+
+                // 
+                case Super.Slack.EVENT_SLACK_ADDRESS_REQUESTED:
+                    this._getMyAddress(event.data);
+                    break;
+
                 // Check if wallet exist and send balance request
                 case Super.Slack.EVENT_SLACK_BALANCE_REQUESTED:
-                    this._getStatBalance(event.data);
+                    this._getMyBalance(event.data);
                     break;
 
                 // Save transaction info
@@ -1547,50 +1847,57 @@ WavesSlackRewardBot.Storage = (function() {
         /**
          * @async
          * @private
-         * @method _getStatBalance
+         * @method _getStatTop
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_STORAGE_REQUEST_ALL
-         * @fires Self.EVENT_STORAGE_NO_TRANSACTIONS
+         * @fires Self.EVENT_STORAGE_STAT_REQUEST_FAILED
+         * @fires Self.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED
          */
-        async _getStatAll(data) {
+        async _getStat(data) {
             var
-                // Make request
-                stat = await this._request(
-                           Self.SQL_GET_ALL_RECIPIENTS,
-                           [],
-                           'array'
-                       ).catch(Super.error);
+                list = null;
+
+            switch (data.stat.alias) {
+
+                // Total balances
+                case 'balances':
+                    list = await this._getStatBalances(data);
+                    break;
+
+                // Montly banalce
+                default:
+                    data.alias = 'month';
+                    list = await this._getStatMonth(data);
+                    break;
+            }
 
             // No need to go further
-            if (!stat || !stat.rowCount) {
-                Super.pub(Self.EVENT_STORAGE_NO_TRANSACTIONS, data);
+            if (!list) {
+                Super.pub(Self.EVENT_STORAGE_STAT_REQUEST_FAILED, data);
                 return;
             }
 
-            // 
-            data.all.list = stat.rows;
+            data.stat.list = list;
 
-            Super.pub(Self.EVENT_STORAGE_REQUEST_ALL, data);
+            Super.pub(Self.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED, data);
         }
 
         /**
          * @async
          * @private
-         * @method _getStatBalance
+         * @method _getStatMonth
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_STORAGE_REQUEST_TOP
-         * @fires Self.EVENT_STORAGE_NO_TRANSACTIONS
+         * @returns {object}
          */
-        async _getStatTop(data) {
+        async _getStatMonth(data) {
             var
                 date = new Date(),
                 stat = null;
 
-            // Move date to the beginning of current month
+            // Move date to the very beginning of current month
             date.setDate(1);
             date.setHours(0);
             date.setMinutes(0);
@@ -1605,14 +1912,89 @@ WavesSlackRewardBot.Storage = (function() {
 
             // No need to go further
             if (!stat || !stat.rowCount) {
-                Super.pub(Self.EVENT_STORAGE_NO_TRANSACTIONS, data);
+                return null;
+            }
+
+            return stat.rows;
+        }
+
+        /**
+         * @async
+         * @private
+         * @method _getStatBalances
+         *
+         * @param {object} data
+         *
+         * @returns {object}
+         */
+        async _getStatBalances(data) {
+            var
+                // Make request
+                stat = await this._request(
+                           Self.SQL_GET_ALL_RECIPIENTS,
+                           [],
+                           'array'
+                       ).catch(Super.error);
+
+            // No need to go further
+            if (!stat || !stat.rowCount) {
+                return null;
+            }
+
+            return stat.rows;
+        }
+
+        /**
+         * @async
+         * @private
+         * @method _getStatAddress
+         *
+         * @param {object} data
+         *
+         * @fires Self.EVENT_STORAGE_SEED_REQUEST_FAILED
+         * @fires Self.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED
+         */
+        async _getMySeed(data) {
+            var
+                wallet = await this._checkWallet(data);
+
+            // No need to go further
+            if (!wallet) {
+                Super.pub(Self.EVENT_STORAGE_SEED_REQUEST_FAILED, data);
                 return;
             }
 
-            // 
-            data.top.list = stat.rows;
+            // Set emitent address
+            data.emitent.seed = wallet[1];
 
-            Super.pub(Self.EVENT_STORAGE_REQUEST_TOP, data);
+            //
+            Super.pub(Self.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED, data);
+        }
+
+        /**
+         * @async
+         * @private
+         * @method _getStatAddress
+         *
+         * @param {object} data
+         *
+         * @fires Self.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED
+         */
+        async _getMyAddress(data) {
+            var
+                wallet = await this._checkWallet(data);
+
+            // No need to go further
+            if (!wallet) {
+                Super.pub(Self.EVENT_STORAGE_ADDRESS_REQUEST_FAILED, data);
+                return;
+            }
+
+            // Set emitent address
+            data.emitent.address = wallet[2];
+
+            //
+            Super.pub(Self.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED, data);
         }
 
         /**
@@ -1624,9 +2006,14 @@ WavesSlackRewardBot.Storage = (function() {
          *
          * @fires Self.EVENT_STORAGE_REQUEST_BALANCE
          */
-        async _getStatBalance(data) {
+        async _getMyBalance(data) {
             var
                 wallet = await this._checkWallet(data);
+
+            // No need to go further
+            if (!wallet) {
+                return;
+            }
 
             // Set emitent address
             data.emitent.address = wallet[2];
