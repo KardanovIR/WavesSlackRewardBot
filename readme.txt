@@ -31,9 +31,9 @@
             "BALANCE_URL" : "url_to_node_api/${address}/${assetId}",
             "TRANSACTION_URL" : "url_to_node_api/transactions/broadcast",
             "REQUEST_TIMEOUT" : 5000,
-            "CONFIG_ALIAS" : "config type",
+            "CONFIG_ALIAS" : "CONFIG_TYPE",
             "ASSET_ID" : "your_asset_id_hash",
-            "TRANSFER_LINK" : "https://wavesexplorer.com/tx/"
+            "TRANSFER_LINK" : "https://wavesexplorer.com/tx/${transactionId}"
         }
     }
 
