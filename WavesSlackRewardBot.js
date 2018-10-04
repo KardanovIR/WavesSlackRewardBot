@@ -388,6 +388,10 @@ WavesSlackRewardBot.Node = (function() {
                 data.ok = false;
                 Super.pub(Self.EVENT_NODE_REQUEST_ABORTED, data);
             }).
+            on('timeout', (exc, xhr) => {
+                data.ok = false;
+                Super.pub(Self.EVENT_NODE_REQUEST_ABORTED, data);
+            }).
             on('success', (res, xhr) => {
                 data.balance.count = res.balance;
                 data.balance.asset = res.assetId;
@@ -435,6 +439,10 @@ WavesSlackRewardBot.Node = (function() {
                 data.ok = false;
                 Super.pub(Self.EVENT_NODE_REQUEST_ABORTED, data);
             }).
+            on('timeout', (exc, xhr) => {
+                data.ok = false;
+                Super.pub(Self.EVENT_NODE_REQUEST_ABORTED, data);
+            }).
             on('success', (res, xhr) => {
                 data.ok = true;
                 data.transfer.id = res.id;
@@ -467,10 +475,18 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
+         * @const {Array} CMD_GET_ALL
+         */
+        static get CMD_GET_ALL() {
+            return 'statall';
+        }
+
+        /**
+         * @static
          * @const {Array} CMD_GET_TOP
          */
         static get CMD_GET_TOP() {
-            return 'top';
+            return 'stattop';
         }
 
         /**
@@ -487,6 +503,7 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get CMD_LIST() {
             return [
+                Self.CMD_GET_ALL,
                 Self.CMD_GET_TOP,
                 Self.CMD_GET_BALANCE
             ];
@@ -530,6 +547,14 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get EVENT_SLACK_WAVES_GRANTED() {
             return 'slackWavesGranted';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_SLACK_ALL_REQUESTED
+         */
+        static get EVENT_SLACK_ALL_REQUESTED() {
+            return 'slackAllRequested';
         }
 
         /**
@@ -621,6 +646,30 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get ANSWER_BALANCE_COUNTED() {
             return 'You current balance is ${count} ${pluralized}';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_ALL_COUNTED
+         */
+        static get ANSWER_ALL_COUNTED() {
+            return 'Top stat:\n\n';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_TOP_COUNTED
+         */
+        static get ANSWER_TOP_COUNTED() {
+            return 'Top stat for month:\n\n';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_TOP_COUNTED_NOTHING
+         */
+        static get ANSWER_TOP_COUNTED_NOTHING() {
+            return 'No transactions yet.';
         }
 
         /**
@@ -730,6 +779,7 @@ WavesSlackRewardBot.Slack = (function() {
             Super.sub(Super.Node.EVENT_NODE_REQUEST_ABORTED, this._route);
             Super.sub(Super.Node.EVENT_NODE_REQUEST_REJECTED, this._route);
             Super.sub(Super.Node.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
+            Super.sub(Super.Storage.EVENT_STORAGE_REQUEST_ALL, this._route);
             Super.sub(Super.Storage.EVENT_STORAGE_REQUEST_TOP, this._route);
             Super.sub(Super.Storage.EVENT_STORAGE_TRANSFER_COMPLETED, this._route);
         }
@@ -801,7 +851,12 @@ WavesSlackRewardBot.Slack = (function() {
                     );
                     break;
 
-                //
+                // Request all users statistics
+                case Super.Storage.EVENT_STORAGE_REQUEST_ALL:
+                    this._answerStatAll(event.data);
+                    break;
+
+                // Request statistics for current month
                 case Super.Storage.EVENT_STORAGE_REQUEST_TOP:
                     this._answerStatTop(event.data);
                     break;
@@ -860,8 +915,6 @@ WavesSlackRewardBot.Slack = (function() {
             }
         }
 
-
-
         /**
          * @async
          * @private
@@ -875,18 +928,24 @@ WavesSlackRewardBot.Slack = (function() {
             var
                 im = await this._isIM(channel).catch(Super.error);
 
-            text = (uid && !im ? Self._getTaggedUser(uid) : '') + ' ' + text;
+            // 
+            if (!im) {
+                channel = `@${uid}`;
+            }
 
             await this._web.chat.postMessage({channel, text}).
             catch(Super.error);
         }
 
-        static get ANSWER_TOP_COUNTED() {
-            return 'Top stat:\n\n';
-        }
-
-        static get ANSWER_TOP_COUNTED_NOTHING() {
-            return 'No transactions yet.';
+        /**
+         * @async
+         * @private
+         * @method _answerStatAll
+         *
+         * @param {object} data
+         */
+        async _answerStatAll(data) {
+            this._answerStatTop(data);
         }
 
         /**
@@ -895,27 +954,45 @@ WavesSlackRewardBot.Slack = (function() {
          * @method _answerStatTop
          *
          * @param {object} data
-         * @param {boolean} resume
          */
-        async _answerStatTop(data, resume = false) {
+        async _answerStatTop(data) {
+            
             var
                 it0 = -1,
                 last = 0,
                 limit = CONF.SLACK_API.SYMBOLS_LIMIT,
-                buffer = !resume ? Self.ANSWER_TOP_COUNTED : '',
+                buffer = '',
+                list = null,
                 item = null;
 
             // No need to go further
-            if (!data || !data.top.list || !data.top.list.length) {
+            if (!data && !data.top && !data.all) {
                 buffer += Self.ANSWER_TOP_COUNTED_NOTHING;
                 this._answer(data.channel.id, buffer);
                 return;
             }
 
-            last = data.top.list.length - 1;
+            // For two types of request
+            if (data.top) {
+                list = data.top.list;
+                buffer = Self.ANSWER_TOP_COUNTED;
+            } else if (data.all) {
+                list = data.all.list;
+                buffer = Self.ANSWER_ALL_COUNTED;
+            }
 
-            while (++it0 < data.top.list.length) {
-                item = data.top.list[it0];
+            // No need to go further
+            if (!list || !list.length) {
+                buffer += Self.ANSWER_TOP_COUNTED_NOTHING;
+                this._answer(data.channel.id, buffer);
+                return;
+            }
+
+            // Compile answer buffer
+            last = list.length - 1;
+
+            while (++it0 < list.length) {
+                item = list[it0];
 
                 buffer += `${Self._getTaggedUser(item[0])} ${item[1]}\n`;
 
@@ -948,6 +1025,15 @@ WavesSlackRewardBot.Slack = (function() {
          */
         _parseCommandMessage(offset, event) {
             switch (Self.CMD_LIST[offset]) {
+
+                // 
+                case Self.CMD_GET_ALL:
+                    Super.pub(Self.EVENT_SLACK_ALL_REQUESTED, {
+                        channel : {id : event.channel},
+                        emitent : {id : event.user},
+                        all : {}
+                    });
+                    break;
 
                 // 
                 case Self.CMD_GET_TOP:
@@ -1190,6 +1276,26 @@ WavesSlackRewardBot.Storage = (function() {
 
         /**
          * @static
+         * @const {string} SQL_GET_ALL_RECIPIENTS
+         */
+        static get SQL_GET_ALL_RECIPIENTS() {
+            return `
+                SELECT
+                    recipient_id,
+                    sum(transaction_amount) AS transaction_amount,
+                    max(transaction_date) AS transaction_date
+                FROM
+                    ${CONF.DB.TRANSACTIONS_TABLE_NAME}
+                GROUP BY
+                    recipient_id
+                ORDER BY
+                    transaction_amount DESC,
+                    transaction_date DESC
+            `;
+        }
+
+        /**
+         * @static
          * @const {string} SQL_GET_TOP_RECIPIENTS
          */
         static get SQL_GET_TOP_RECIPIENTS() {
@@ -1200,6 +1306,8 @@ WavesSlackRewardBot.Storage = (function() {
                     max(transaction_date) AS transaction_date
                 FROM
                     ${CONF.DB.TRANSACTIONS_TABLE_NAME}
+                WHERE
+                    transaction_date >= $1
                 GROUP BY
                     recipient_id
                 ORDER BY
@@ -1282,6 +1390,14 @@ WavesSlackRewardBot.Storage = (function() {
 
         /**
          * @static
+         * @const {string} EVENT_STORAGE_REQUEST_ALL
+         */
+        static get EVENT_STORAGE_REQUEST_ALL() {
+            return 'storageAllRequested';
+        }
+
+        /**
+         * @static
          * @const {string} EVENT_STORAGE_REQUEST_TOP
          */
         static get EVENT_STORAGE_REQUEST_TOP() {
@@ -1320,6 +1436,7 @@ WavesSlackRewardBot.Storage = (function() {
         _live() {
             // Modules events
             Super.sub(Super.Slack.EVENT_SLACK_WAVES_GRANTED, this._route);
+            Super.sub(Super.Slack.EVENT_SLACK_ALL_REQUESTED, this._route);
             Super.sub(Super.Slack.EVENT_SLACK_TOP_REQUESTED, this._route);
             Super.sub(Super.Slack.EVENT_SLACK_BALANCE_REQUESTED, this._route);
             Super.sub(Super.Node.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
@@ -1342,6 +1459,11 @@ WavesSlackRewardBot.Storage = (function() {
                 // Check if wallets exist and send transaction request
                 case Super.Slack.EVENT_SLACK_WAVES_GRANTED:
                     this._checkWallets(event.data);
+                    break;
+
+                //
+                case Super.Slack.EVENT_SLACK_ALL_REQUESTED:
+                    this._getStatAll(event.data);
                     break;
 
                 //
@@ -1407,15 +1529,57 @@ WavesSlackRewardBot.Storage = (function() {
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_STORAGE_REQUEST_BALANCE
+         * @fires Self.EVENT_STORAGE_REQUEST_ALL
+         * @fires Self.EVENT_STORAGE_NO_TRANSACTIONS
          */
-        async _getStatTop(data) {
+        async _getStatAll(data) {
             var
+                // Make request
                 stat = await this._request(
-                           Self.SQL_GET_TOP_RECIPIENTS,
+                           Self.SQL_GET_ALL_RECIPIENTS,
                            [],
                            'array'
                        ).catch(Super.error);
+
+            // No need to go further
+            if (!stat || !stat.rowCount) {
+                Super.pub(Self.EVENT_STORAGE_NO_TRANSACTIONS, data);
+                return;
+            }
+
+            // 
+            data.all.list = stat.rows;
+
+            Super.pub(Self.EVENT_STORAGE_REQUEST_ALL, data);
+        }
+
+        /**
+         * @async
+         * @private
+         * @method _getStatBalance
+         *
+         * @param {object} data
+         *
+         * @fires Self.EVENT_STORAGE_REQUEST_TOP
+         * @fires Self.EVENT_STORAGE_NO_TRANSACTIONS
+         */
+        async _getStatTop(data) {
+            var
+                date = new Date(),
+                stat = null;
+
+            // Move date to the beginning of current month
+            date.setDate(1);
+            date.setHours(0);
+            date.setMinutes(0);
+            date.setSeconds(0);
+
+            // Make request
+            stat = await this._request(
+                       Self.SQL_GET_TOP_RECIPIENTS,
+                       [date],
+                       'array'
+                   ).catch(Super.error);
 
             // No need to go further
             if (!stat || !stat.rowCount) {
