@@ -539,6 +539,22 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
+         * @const {Array} CMD_FULL_LIST
+         */
+        static get CMD_FULL_LIST() {
+            var
+                list = Self.CMD_LIST.slice();
+
+            list.push('stat month');
+            list.push('stat balances');
+
+            list.sort();
+
+            return list;
+        }
+
+        /**
+         * @static
          * @const {Array} WAVES_ALIASES
          */
         static get WAVES_ALIASES() {
@@ -678,7 +694,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_HELP
          */
         static get ANSWER_HELP() {
-            return 'Available commands:\n\n— ' + Self.CMD_LIST.join(',\n— ');
+            return 'Available commands:\n\n— ' + Self.CMD_FULL_LIST.join(',\n— ');
         }
 
         /**
