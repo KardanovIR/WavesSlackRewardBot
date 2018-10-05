@@ -26,9 +26,6 @@ const {transfer} = require('waves-transactions');
  */
 let WavesSlackRewardBot = (function() {
 
-    // Common event emitter initialization
-    let Emitter = new EventEmitter;
-
     // Class definition
     class Self {
 
@@ -78,38 +75,6 @@ let WavesSlackRewardBot = (function() {
          */
         static get MESSAGE_STORAGE_NOT_CONNECTED() {
             return `Storage module isn't ready`;
-        }
-
-        /**
-         * @static
-         * @member {Emitter} Emitter
-         */
-        static get Emitter() {
-            return Emitter;
-        }
-
-        /**
-         * @static
-         * @method pub
-         *
-         * @param {string} type
-         * @param {object} data
-         */
-        static pub(type, data = null) {
-            data = data ? data : null;
-
-            Self.Emitter.emit(type, {type, data});
-        }
-
-        /**
-         * @static
-         * @method sub
-         *
-         * @param {string} type
-         * @param {Function} handler
-         */
-        static sub(type, handler) {
-            Self.Emitter.on(type, handler);
         }
 
         /**
@@ -183,12 +148,12 @@ let WavesSlackRewardBot = (function() {
          * @method _live
          */
         _live() {
-            Self.sub(Self.Node.EVENT_NODE_CONNECTED, this._route);
-            Self.sub(Self.Node.EVENT_NODE_NOT_CONNECTED, this._route);
-            Self.sub(Self.Slack.EVENT_SLACK_CONNECTED, this._route);
-            Self.sub(Self.Slack.EVENT_SLACK_NOT_CONNECTED, this._route);
-            Self.sub(Self.Storage.EVENT_STORAGE_CONNECTED, this._route);
-            Self.sub(Self.Storage.EVENT_STORAGE_NOT_CONNECTED, this._route);
+            Self.Event.sub(Self.Event.EVENT_NODE_CONNECTED, this._route);
+            Self.Event.sub(Self.Event.EVENT_NODE_NOT_CONNECTED, this._route);
+            Self.Event.sub(Self.Event.EVENT_SLACK_CONNECTED, this._route);
+            Self.Event.sub(Self.Event.EVENT_SLACK_NOT_CONNECTED, this._route);
+            Self.Event.sub(Self.Event.EVENT_STORAGE_CONNECTED, this._route);
+            Self.Event.sub(Self.Event.EVENT_STORAGE_NOT_CONNECTED, this._route);
         }
 
         /**
@@ -206,32 +171,32 @@ let WavesSlackRewardBot = (function() {
             switch (event.type) {
 
                 // Waves API module is ready
-                case Self.Node.EVENT_NODE_CONNECTED:
+                case Self.Event.EVENT_NODE_CONNECTED:
                     console.log(Self.MESSAGE_NODE_CONNECTED);
                     break;
 
                 // Waves API module isn't ready
-                case Self.Node.EVENT_NODE_NOT_CONNECTED:
+                case Self.Event.EVENT_NODE_NOT_CONNECTED:
                     console.log(Self.MESSAGE_NODE_NOT_CONNECTED);
                     break;
 
                 // Slack module is ready
-                case Self.Slack.EVENT_SLACK_CONNECTED:
+                case Self.Event.EVENT_SLACK_CONNECTED:
                     console.log(Self.MESSAGE_SLACK_CONNECTED);
                     break;
 
                 // Slack module isn't ready
-                case Self.Slack.EVENT_SLACK_NOT_CONNECTED:
+                case Self.Event.EVENT_SLACK_NOT_CONNECTED:
                     console.log(Self.MESSAGE_SLACK_NOT_CONNECTED);
                     break;
 
                 // Storage module is ready
-                case Self.Storage.EVENT_STORAGE_CONNECTED:
+                case Self.Event.EVENT_STORAGE_CONNECTED:
                     console.log(Self.MESSAGE_STORAGE_CONNECTED);
                     break;
 
                 // Storage module isn't ready
-                case Self.Storage.EVENT_STORAGE_NOT_CONNECTED:
+                case Self.Event.EVENT_STORAGE_NOT_CONNECTED:
                     console.log(Self.MESSAGE_STORAGE_NOT_CONNECTED);
                     break;
 
@@ -248,16 +213,17 @@ let WavesSlackRewardBot = (function() {
 
 
 /**
- * @class WavesSlackRewardBot.Node
+ * @class WavesSlackRewardBot.Event
  *
- * @see https://github.com/wavesplatform/waves-api
- * @see https://www.npmjs.com/package/waves-transactions
- * @see https://github.com/danwrong/restler
+ * @see https://nodejs.org/api/events.html
  */
-WavesSlackRewardBot.Node = (function() {
+WavesSlackRewardBot.Event = (function() {
 
     // Root module
     let Super = this;
+
+    // Common event emitter initialization
+    let Emitter = new EventEmitter;
 
     // Class definition
     class Self {
@@ -303,10 +269,258 @@ WavesSlackRewardBot.Node = (function() {
         }
 
         /**
+         * @static
+         * @const {string} EVENT_SLACK_CONNECTED
+         */
+        static get EVENT_SLACK_CONNECTED() {
+            return 'slackConnected';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_SLACK_NOT_CONNECTED
+         */
+        static get EVENT_SLACK_NOT_CONNECTED() {
+            return 'slackNotConnected';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_SLACK_WAVES_GRANTED
+         */
+        static get EVENT_SLACK_WAVES_GRANTED() {
+            return 'slackWavesGranted';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_SLACK_ALL_REQUESTED
+         */
+        static get EVENT_SLACK_ALL_REQUESTED() {
+            return 'slackAllRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_SLACK_TOP_REQUESTED
+         */
+        static get EVENT_SLACK_TOP_REQUESTED() {
+            return 'slackTopRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_SLACK_SEED_REQUESTED
+         */
+        static get EVENT_SLACK_SEED_REQUESTED() {
+            return 'slackSeedRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_SLACK_STAT_REQUESTED
+         */
+        static get EVENT_SLACK_STAT_REQUESTED() {
+            return 'slackStatRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_SLACK_BALANCE_REQUESTED
+         */
+        static get EVENT_SLACK_BALANCE_REQUESTED() {
+            return 'slackBalanceRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_SLACK_ADDRESS_REQUESTED
+         */
+        static get EVENT_SLACK_ADDRESS_REQUESTED() {
+            return 'slackAddressRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_CONNECTED
+         */
+        static get EVENT_STORAGE_CONNECTED() {
+            return 'storageConnected';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_NOT_CONNECTED
+         */
+        static get EVENT_STORAGE_NOT_CONNECTED() {
+            return 'storageNotConnected';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_NO_WALLET
+         */
+        static get EVENT_STORAGE_NO_WALLET() {
+            return 'storageNoWalletFound';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_NO_WALLETS
+         */
+        static get EVENT_STORAGE_NO_WALLETS() {
+            return 'storageNoWalletsFound';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_NO_EMITTER_WALLET
+         */
+        static get EVENT_STORAGE_NO_EMITTER_WALLET() {
+            return 'storageNoEmitterWalletFound';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_NO_RECIPIENT_WALLET
+         */
+        static get EVENT_STORAGE_NO_RECIPIENT_WALLET() {
+            return 'storageNoRecipientWalletFound';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_TRANSFER_WAVES
+         */
+        static get EVENT_STORAGE_TRANSFER_WAVES() {
+            return 'storageWavesTransferRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_TRANSFER_COMPLETED
+         */
+        static get EVENT_STORAGE_TRANSFER_COMPLETED() {
+            return 'storageWavesTransferCompleted';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_TRANSFER_NOT_COMPLETED
+         */
+        static get EVENT_STORAGE_TRANSFER_NOT_COMPLETED() {
+            return 'storageWavesTransferNotCompleted';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_SEED_REQUEST_FAILED
+         */
+        static get EVENT_STORAGE_SEED_REQUEST_FAILED() {
+            return 'storageSeedRequestFailed';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_SEED_REQUEST_SUCCEEDED
+         */
+        static get EVENT_STORAGE_SEED_REQUEST_SUCCEEDED() {
+            return 'storageSeedRequestSucceeded';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_ADDRESS_REQUEST_FAILED
+         */
+        static get EVENT_STORAGE_ADDRESS_REQUEST_FAILED() {
+            return 'storageAddressRequestFailed';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED
+         */
+        static get EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED() {
+            return 'storageAddressRequestSucceeded';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_REQUEST_BALANCE
+         */
+        static get EVENT_STORAGE_REQUEST_BALANCE() {
+            return 'storageBalanceRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_STAT_REQUEST_FAILED
+         */
+        static get EVENT_STORAGE_STAT_REQUEST_FAILED() {
+            return 'storageBalanceRequestFailed';
+        }
+
+        /**
+         * @static
+         * @const {string} EVENT_STORAGE_STAT_REQUEST_SUCCEEDED
+         */
+        static get EVENT_STORAGE_STAT_REQUEST_SUCCEEDED() {
+            return 'storageBalanceRequestSucceeded';
+        }
+
+        /**
+         * @static
+         * @method pub
+         *
+         * @param {string} type
+         * @param {object} data
+         */
+        static pub(type, data = null) {
+            data = data ? data : null;
+
+            Emitter.emit(type, {type, data});
+        }
+
+        /**
+         * @static
+         * @method sub
+         *
+         * @param {string} type
+         * @param {Function} handler
+         */
+        static sub(type, handler) {
+            Emitter.on(type, handler);
+        }
+
+    }
+
+    // Class export
+    return Self;
+
+}).call(WavesSlackRewardBot);
+
+
+
+/**
+ * @class WavesSlackRewardBot.Node
+ *
+ * @see https://github.com/wavesplatform/waves-api
+ * @see https://www.npmjs.com/package/waves-transactions
+ * @see https://github.com/danwrong/restler
+ */
+WavesSlackRewardBot.Node = (function() {
+
+    // Root module
+    let Super = this;
+
+    // Class definition
+    class Self {
+
+        /**
          * @constructor
          *
-         * @fires Self.EVENT_NODE_CONNECTED
-         * @fires Self.EVENT_NODE_NOT_CONNECTED
+         * @fires Super.Event.EVENT_NODE_CONNECTED
+         * @fires Super.Event.EVENT_NODE_NOT_CONNECTED
          */
         constructor() {
             // Bind some methods to the current context
@@ -318,9 +532,9 @@ WavesSlackRewardBot.Node = (function() {
             // Initiate
             try {
                 this._module = WavesAPI.create(WavesAPI[CONF.WAVES_API.CONFIG_ALIAS]);
-                Super.pub(Self.EVENT_NODE_CONNECTED);
+                Super.Event.pub(Super.Event.EVENT_NODE_CONNECTED);
             } catch (exc) {
-                Super.pub(Self.EVENT_NODE_NOT_CONNECTED);
+                Super.Event.pub(Super.Event.EVENT_NODE_NOT_CONNECTED);
                 Super.error(exc);
             }
         }
@@ -331,8 +545,8 @@ WavesSlackRewardBot.Node = (function() {
          */
         _live() {
             // Modules events
-            Super.sub(Super.Storage.EVENT_STORAGE_TRANSFER_WAVES, this._route);
-            Super.sub(Super.Storage.EVENT_STORAGE_REQUEST_BALANCE, this._route);
+            Super.Event.sub(Super.Event.EVENT_STORAGE_TRANSFER_WAVES, this._route);
+            Super.Event.sub(Super.Event.EVENT_STORAGE_REQUEST_BALANCE, this._route);
         }
 
         /**
@@ -350,12 +564,12 @@ WavesSlackRewardBot.Node = (function() {
             switch (event.type) {
 
                 // Sent Waves transfer request
-                case Super.Storage.EVENT_STORAGE_TRANSFER_WAVES:
+                case Super.Event.EVENT_STORAGE_TRANSFER_WAVES:
                     this._transferWaves(event.data);
                     break;
 
                 // 
-                case Super.Storage.EVENT_STORAGE_REQUEST_BALANCE:
+                case Super.Event.EVENT_STORAGE_REQUEST_BALANCE:
                     this._checkBalance(event.data);
                     break;
 
@@ -368,9 +582,9 @@ WavesSlackRewardBot.Node = (function() {
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_NODE_REQUEST_REJECTED
-         * @fires Self.EVENT_NODE_REQUEST_ABORTED
-         * @fires Self.EVENT_NODE_REQUEST_SUCCEEDED
+         * @fires Super.Event.EVENT_NODE_REQUEST_REJECTED
+         * @fires Super.Event.EVENT_NODE_REQUEST_ABORTED
+         * @fires Super.Event.EVENT_NODE_REQUEST_SUCCEEDED
          */
         _checkBalance(data) {
             var
@@ -382,20 +596,20 @@ WavesSlackRewardBot.Node = (function() {
             Restler.get(url).
             on('fail', (res, xhr) => {
                 data.ok = false;
-                Super.pub(Self.EVENT_NODE_REQUEST_REJECTED, data)
+                Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_REJECTED, data)
             }).
             on('error', (exc, xhr) => {
                 data.ok = false;
-                Super.pub(Self.EVENT_NODE_REQUEST_ABORTED, data);
+                Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_ABORTED, data);
             }).
             on('timeout', (exc, xhr) => {
                 data.ok = false;
-                Super.pub(Self.EVENT_NODE_REQUEST_ABORTED, data);
+                Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_ABORTED, data);
             }).
             on('success', (res, xhr) => {
                 data.balance.count = res.balance;
                 data.balance.asset = res.assetId;
-                Super.pub(Self.EVENT_NODE_REQUEST_SUCCEEDED, data);
+                Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_SUCCEEDED, data);
             });
         }
 
@@ -405,9 +619,9 @@ WavesSlackRewardBot.Node = (function() {
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_NODE_REQUEST_REJECTED
-         * @fires Self.EVENT_NODE_REQUEST_REJECTED
-         * @fires Self.EVENT_NODE_REQUEST_REJECTED
+         * @fires Super.Event.EVENT_NODE_REQUEST_REJECTED
+         * @fires Super.Event.EVENT_NODE_REQUEST_REJECTED
+         * @fires Super.Event.EVENT_NODE_REQUEST_REJECTED
          */
         _transferWaves(data) {
             var
@@ -421,11 +635,6 @@ WavesSlackRewardBot.Node = (function() {
                          },
                 request = null;
 
-            // feeAssetId is for production operations only
-//             if (CONF.DEV) {
-//                 params.feeAssetId = null;
-//             }
-
             // Create request JSON object
             request = transfer(data.emitent.phrase, params);
 
@@ -434,20 +643,20 @@ WavesSlackRewardBot.Node = (function() {
             on('fail', (res, xhr) => {
                 data.ok = false;
                 data.transfer.answer = res.message;
-                Super.pub(Self.EVENT_NODE_REQUEST_REJECTED, data);
+                Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_REJECTED, data);
             }).
             on('error', (exc, xhr) => {
                 data.ok = false;
-                Super.pub(Self.EVENT_NODE_REQUEST_ABORTED, data);
+                Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_ABORTED, data);
             }).
             on('timeout', (exc, xhr) => {
                 data.ok = false;
-                Super.pub(Self.EVENT_NODE_REQUEST_ABORTED, data);
+                Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_ABORTED, data);
             }).
             on('success', (res, xhr) => {
                 data.ok = true;
                 data.transfer.id = res.id;
-                Super.pub(Self.EVENT_NODE_REQUEST_SUCCEEDED, data);
+                Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_SUCCEEDED, data);
             });
         }
     }
@@ -600,78 +809,6 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get REWARDED_REACTIONS() {
             return ['+1', 'heart'];
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_SLACK_CONNECTED
-         */
-        static get EVENT_SLACK_CONNECTED() {
-            return 'slackConnected';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_SLACK_NOT_CONNECTED
-         */
-        static get EVENT_SLACK_NOT_CONNECTED() {
-            return 'slackNotConnected';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_SLACK_WAVES_GRANTED
-         */
-        static get EVENT_SLACK_WAVES_GRANTED() {
-            return 'slackWavesGranted';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_SLACK_ALL_REQUESTED
-         */
-        static get EVENT_SLACK_ALL_REQUESTED() {
-            return 'slackAllRequested';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_SLACK_TOP_REQUESTED
-         */
-        static get EVENT_SLACK_TOP_REQUESTED() {
-            return 'slackTopRequested';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_SLACK_SEED_REQUESTED
-         */
-        static get EVENT_SLACK_SEED_REQUESTED() {
-            return 'slackSeedRequested';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_SLACK_STAT_REQUESTED
-         */
-        static get EVENT_SLACK_STAT_REQUESTED() {
-            return 'slackStatRequested';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_SLACK_BALANCE_REQUESTED
-         */
-        static get EVENT_SLACK_BALANCE_REQUESTED() {
-            return 'slackBalanceRequested';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_SLACK_ADDRESS_REQUESTED
-         */
-        static get EVENT_SLACK_ADDRESS_REQUESTED() {
-            return 'slackAddressRequested';
         }
 
         /**
@@ -916,8 +1053,8 @@ WavesSlackRewardBot.Slack = (function() {
         /**
          * @constructor
          *
-         * @fires Self.EVENT_SLACK_NOT_CONNECTED
-         * @fires Self.EVENT_SLACK_CONNECTED
+         * @fires Super.Event.EVENT_SLACK_NOT_CONNECTED
+         * @fires Super.Event.EVENT_SLACK_CONNECTED
          */
         constructor() {
             // Bind some methods to the current context
@@ -936,12 +1073,12 @@ WavesSlackRewardBot.Slack = (function() {
 
             // No need to go further
             if (!this._rtm || !this._web) {
-                Super.pub(Self.EVENT_SLACK_NOT_CONNECTED);
+                Super.Event.pub(Super.Event.EVENT_SLACK_NOT_CONNECTED);
                 return;
             }
 
             // Everything's ok
-            Super.pub(Self.EVENT_SLACK_CONNECTED);
+            Super.Event.pub(Super.Event.EVENT_SLACK_CONNECTED);
         }
 
         /**
@@ -1009,16 +1146,16 @@ WavesSlackRewardBot.Slack = (function() {
             this._rtm.on('reaction_added', this._routeMessages);
 
             // Modules events
-            Super.sub(Super.Node.EVENT_NODE_REQUEST_ABORTED, this._route);
-            Super.sub(Super.Node.EVENT_NODE_REQUEST_REJECTED, this._route);
-            Super.sub(Super.Node.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
-            Super.sub(Super.Storage.EVENT_STORAGE_TRANSFER_COMPLETED, this._route);
-            Super.sub(Super.Storage.EVENT_STORAGE_SEED_REQUEST_FAILED, this._route);
-            Super.sub(Super.Storage.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED, this._route);
-            Super.sub(Super.Storage.EVENT_STORAGE_STAT_REQUEST_FAILED, this._route);
-            Super.sub(Super.Storage.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED, this._route);
-            Super.sub(Super.Storage.EVENT_STORAGE_ADDRESS_REQUEST_FAILED, this._route);
-            Super.sub(Super.Storage.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED, this._route);
+            Super.Event.sub(Super.Event.EVENT_NODE_REQUEST_ABORTED, this._route);
+            Super.Event.sub(Super.Event.EVENT_NODE_REQUEST_REJECTED, this._route);
+            Super.Event.sub(Super.Event.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
+            Super.Event.sub(Super.Event.EVENT_STORAGE_TRANSFER_COMPLETED, this._route);
+            Super.Event.sub(Super.Event.EVENT_STORAGE_SEED_REQUEST_FAILED, this._route);
+            Super.Event.sub(Super.Event.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED, this._route);
+            Super.Event.sub(Super.Event.EVENT_STORAGE_STAT_REQUEST_FAILED, this._route);
+            Super.Event.sub(Super.Event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED, this._route);
+            Super.Event.sub(Super.Event.EVENT_STORAGE_ADDRESS_REQUEST_FAILED, this._route);
+            Super.Event.sub(Super.Event.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED, this._route);
         }
 
         /**
@@ -1032,54 +1169,54 @@ WavesSlackRewardBot.Slack = (function() {
             switch (event.type) {
 
                 // Answer with default Node request abort
-                case Super.Node.EVENT_NODE_REQUEST_ABORTED:
+                case Super.Event.EVENT_NODE_REQUEST_ABORTED:
                     this._answerDefaultNodeRequestAbort(event.data);
                     break;
 
                 // Answer with default Node request reject
-                case Super.Node.EVENT_NODE_REQUEST_REJECTED:
+                case Super.Event.EVENT_NODE_REQUEST_REJECTED:
                     this._answerDefaultNodeRequestReject(event.data);
                     break;
 
                 // Answer with default Node request success
-                case Super.Node.EVENT_NODE_REQUEST_SUCCEEDED:
+                case Super.Event.EVENT_NODE_REQUEST_SUCCEEDED:
                     if (event.data.balance) {
                         this._answerMyBalance(event.data);
                     }
                     break;
 
                 // Answer that transfer was completed
-                case Super.Storage.EVENT_STORAGE_TRANSFER_COMPLETED:
+                case Super.Event.EVENT_STORAGE_TRANSFER_COMPLETED:
                     this._answerTransferCompleted(event.data)
                     break;
 
                 // Answer that my wallet seed request failed
-                case Super.Storage.EVENT_STORAGE_SEED_REQUEST_FAILED:
+                case Super.Event.EVENT_STORAGE_SEED_REQUEST_FAILED:
                     this._answer(event.data.channel.id, Self.ANSWER_YOUR_SEED_IS_UNKNOWN);
                     break;
 
                 // Answer that my wallet seed request succeeded
-                case Super.Storage.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED:
+                case Super.Event.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED:
                     this._answerMySeed(event.data);
                     break;
 
                 // Answer that my wallet address request failed
-                case Super.Storage.EVENT_STORAGE_ADDRESS_REQUEST_FAILED:
+                case Super.Event.EVENT_STORAGE_ADDRESS_REQUEST_FAILED:
                     this._answer(event.data.channel.id, Self.ANSWER_ADDRESS_REQUEST_FAILED);
                     break;
 
                 // Answer that my wallet address request succeeded
-                case Super.Storage.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED:
+                case Super.Event.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED:
                     this._answerMyAddress(event.data);
                     break;
 
                 // Answer that stat request failed
-                case Super.Storage.EVENT_STORAGE_STAT_REQUEST_FAILED:
+                case Super.Event.EVENT_STORAGE_STAT_REQUEST_FAILED:
                     this._answer(event.data.channel.id, Self.ANSWER_STAT_REQUEST_FAILED);
                     break;
 
                 // Answer that stat request succeeded
-                case Super.Storage.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED:
+                case Super.Event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED:
                     this._answerStat(event.data)
                     break;
 
@@ -1376,7 +1513,7 @@ WavesSlackRewardBot.Slack = (function() {
 
                 // 
                 case Self.CMD_GET_ALL:
-                    Super.pub(Self.EVENT_SLACK_ALL_REQUESTED, {
+                    Super.Event.pub(Super.Event.EVENT_SLACK_ALL_REQUESTED, {
                         channel : {id : event.channel},
                         emitent : {id : event.user},
                         all : {}
@@ -1385,7 +1522,7 @@ WavesSlackRewardBot.Slack = (function() {
 
                 // 
                 case Self.CMD_GET_TOP:
-                    Super.pub(Self.EVENT_SLACK_TOP_REQUESTED, {
+                    Super.Event.pub(Super.Event.EVENT_SLACK_TOP_REQUESTED, {
                         channel : {id : event.channel},
                         emitent : {id : event.user},
                         top : {}
@@ -1394,7 +1531,7 @@ WavesSlackRewardBot.Slack = (function() {
 
                 // 
                 case Self.CMD_GET_SEED:
-                    Super.pub(Self.EVENT_SLACK_SEED_REQUESTED, {
+                    Super.Event.pub(Super.Event.EVENT_SLACK_SEED_REQUESTED, {
                         channel : {id : event.channel},
                         emitent : {id : event.user}
                     });
@@ -1402,7 +1539,7 @@ WavesSlackRewardBot.Slack = (function() {
 
                 //
                 case Self.CMD_GET_STAT:
-                    Super.pub(Self.EVENT_SLACK_STAT_REQUESTED, {
+                    Super.Event.pub(Super.Event.EVENT_SLACK_STAT_REQUESTED, {
                         channel : {id : event.channel},
                         emitent : {id : event.user},
                         stat : {alias : event.text.split(/\s+/)[1]}
@@ -1411,7 +1548,7 @@ WavesSlackRewardBot.Slack = (function() {
 
                 // 
                 case Self.CMD_GET_ADDRESS:
-                    Super.pub(Self.EVENT_SLACK_ADDRESS_REQUESTED, {
+                    Super.Event.pub(Super.Event.EVENT_SLACK_ADDRESS_REQUESTED, {
                         channel : {id : event.channel},
                         emitent : {id : event.user}
                     });
@@ -1439,7 +1576,7 @@ WavesSlackRewardBot.Slack = (function() {
                 data.recipient = {id : recipient[0].replace(/[<>@]/g, '')};
             }
 
-            Super.pub(Self.EVENT_SLACK_BALANCE_REQUESTED, data);
+            Super.Event.pub(Super.Event.EVENT_SLACK_BALANCE_REQUESTED, data);
         }
 
         /**
@@ -1542,7 +1679,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @param {string} amount
          * @param {boolean} answer
          *
-         * @fires Self.EVENT_SLACK_WAVES_GRANTED
+         * @fires Super.Event.EVENT_SLACK_WAVES_GRANTED
          */
         _finishParsing(channel, im, emitent, recipient, amount, answer = true) {
             amount = Math.floor(amount);
@@ -1563,7 +1700,7 @@ WavesSlackRewardBot.Slack = (function() {
             }
 
             // Send transfer information object to other modules
-            Super.pub(Self.EVENT_SLACK_WAVES_GRANTED, {
+            Super.Event.pub(Super.Event.EVENT_SLACK_WAVES_GRANTED, {
                 channel : {id : channel},
                 emitent : {id : emitent},
                 recipient : {id : recipient},
@@ -1703,134 +1840,6 @@ WavesSlackRewardBot.Storage = (function() {
         }
 
         /**
-         * @static
-         * @const {string} EVENT_STORAGE_CONNECTED
-         */
-        static get EVENT_STORAGE_CONNECTED() {
-            return 'storageConnected';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_NOT_CONNECTED
-         */
-        static get EVENT_STORAGE_NOT_CONNECTED() {
-            return 'storageNotConnected';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_NO_WALLET
-         */
-        static get EVENT_STORAGE_NO_WALLET() {
-            return 'storageNoWalletFound';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_NO_WALLETS
-         */
-        static get EVENT_STORAGE_NO_WALLETS() {
-            return 'storageNoWalletsFound';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_NO_EMITTER_WALLET
-         */
-        static get EVENT_STORAGE_NO_EMITTER_WALLET() {
-            return 'storageNoEmitterWalletFound';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_NO_RECIPIENT_WALLET
-         */
-        static get EVENT_STORAGE_NO_RECIPIENT_WALLET() {
-            return 'storageNoRecipientWalletFound';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_TRANSFER_WAVES
-         */
-        static get EVENT_STORAGE_TRANSFER_WAVES() {
-            return 'storageWavesTransferRequested';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_TRANSFER_COMPLETED
-         */
-        static get EVENT_STORAGE_TRANSFER_COMPLETED() {
-            return 'storageWavesTransferCompleted';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_TRANSFER_NOT_COMPLETED
-         */
-        static get EVENT_STORAGE_TRANSFER_NOT_COMPLETED() {
-            return 'storageWavesTransferNotCompleted';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_SEED_REQUEST_FAILED
-         */
-        static get EVENT_STORAGE_SEED_REQUEST_FAILED() {
-            return 'storageSeedRequestFailed';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_SEED_REQUEST_SUCCEEDED
-         */
-        static get EVENT_STORAGE_SEED_REQUEST_SUCCEEDED() {
-            return 'storageSeedRequestSucceeded';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_ADDRESS_REQUEST_FAILED
-         */
-        static get EVENT_STORAGE_ADDRESS_REQUEST_FAILED() {
-            return 'storageAddressRequestFailed';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED
-         */
-        static get EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED() {
-            return 'storageAddressRequestSucceeded';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_REQUEST_BALANCE
-         */
-        static get EVENT_STORAGE_REQUEST_BALANCE() {
-            return 'storageBalanceRequested';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_STAT_REQUEST_FAILED
-         */
-        static get EVENT_STORAGE_STAT_REQUEST_FAILED() {
-            return 'storageBalanceRequestFailed';
-        }
-
-        /**
-         * @static
-         * @const {string} EVENT_STORAGE_STAT_REQUEST_SUCCEEDED
-         */
-        static get EVENT_STORAGE_STAT_REQUEST_SUCCEEDED() {
-            return 'storageBalanceRequestSucceeded';
-        }
-
-        /**
          * @constructor
          */
         constructor() {
@@ -1853,14 +1862,14 @@ WavesSlackRewardBot.Storage = (function() {
          */
         _live() {
             // Modules events
-            Super.sub(Super.Slack.EVENT_SLACK_WAVES_GRANTED, this._route);
-            Super.sub(Super.Slack.EVENT_SLACK_ALL_REQUESTED, this._route);
-            Super.sub(Super.Slack.EVENT_SLACK_TOP_REQUESTED, this._route);
-            Super.sub(Super.Slack.EVENT_SLACK_SEED_REQUESTED, this._route);
-            Super.sub(Super.Slack.EVENT_SLACK_STAT_REQUESTED, this._route);
-            Super.sub(Super.Slack.EVENT_SLACK_ADDRESS_REQUESTED, this._route);
-            Super.sub(Super.Slack.EVENT_SLACK_BALANCE_REQUESTED, this._route);
-            Super.sub(Super.Node.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
+            Super.Event.sub(Super.Event.EVENT_SLACK_WAVES_GRANTED, this._route);
+            Super.Event.sub(Super.Event.EVENT_SLACK_ALL_REQUESTED, this._route);
+            Super.Event.sub(Super.Event.EVENT_SLACK_TOP_REQUESTED, this._route);
+            Super.Event.sub(Super.Event.EVENT_SLACK_SEED_REQUESTED, this._route);
+            Super.Event.sub(Super.Event.EVENT_SLACK_STAT_REQUESTED, this._route);
+            Super.Event.sub(Super.Event.EVENT_SLACK_ADDRESS_REQUESTED, this._route);
+            Super.Event.sub(Super.Event.EVENT_SLACK_BALANCE_REQUESTED, this._route);
+            Super.Event.sub(Super.Event.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
         }
 
         /**
@@ -1878,42 +1887,42 @@ WavesSlackRewardBot.Storage = (function() {
             switch (event.type) {
 
                 // Check if wallets exist and send transaction request
-                case Super.Slack.EVENT_SLACK_WAVES_GRANTED:
+                case Super.Event.EVENT_SLACK_WAVES_GRANTED:
                     this._checkWallets(event.data);
                     break;
 
                 //
-                case Super.Slack.EVENT_SLACK_ALL_REQUESTED:
+                case Super.Event.EVENT_SLACK_ALL_REQUESTED:
                     this._getStatAll(event.data);
                     break;
 
                 //
-                case Super.Slack.EVENT_SLACK_TOP_REQUESTED:
+                case Super.Event.EVENT_SLACK_TOP_REQUESTED:
                     this._getStatTop(event.data);
                     break;
 
                 // 
-                case Super.Slack.EVENT_SLACK_SEED_REQUESTED:
+                case Super.Event.EVENT_SLACK_SEED_REQUESTED:
                     this._getMySeed(event.data);
                     break;
 
                 //
-                case Super.Slack.EVENT_SLACK_STAT_REQUESTED:
+                case Super.Event.EVENT_SLACK_STAT_REQUESTED:
                     this._getStat(event.data);
                     break;
 
                 // 
-                case Super.Slack.EVENT_SLACK_ADDRESS_REQUESTED:
+                case Super.Event.EVENT_SLACK_ADDRESS_REQUESTED:
                     this._getMyAddress(event.data);
                     break;
 
                 // Check if wallet exist and send balance request
-                case Super.Slack.EVENT_SLACK_BALANCE_REQUESTED:
+                case Super.Event.EVENT_SLACK_BALANCE_REQUESTED:
                     this._getMyBalance(event.data);
                     break;
 
                 // Save transaction info
-                case Super.Node.EVENT_NODE_REQUEST_SUCCEEDED:
+                case Super.Event.EVENT_NODE_REQUEST_SUCCEEDED:
                     if (event.data.transfer) {
                         this._addTransaction(event.data);
                     }
@@ -1948,13 +1957,13 @@ WavesSlackRewardBot.Storage = (function() {
          * @private
          * @method _connect
          *
-         * @fires Self.EVENT_STORAGE_CONNECTED
-         * @fires Self.EVENT_STORAGE_NOT_CONNECTED
+         * @fires Super.Event.EVENT_STORAGE_CONNECTED
+         * @fires Super.Event.EVENT_STORAGE_NOT_CONNECTED
          */
         async _connect() {
             await this._client.connect(
-                () => {Super.pub(Self.EVENT_STORAGE_CONNECTED)},
-                (exc) => {Super.pub(Self.EVENT_STORAGE_NOT_CONNECTED, exc)}
+                () => {Super.Event.pub(Super.Event.EVENT_STORAGE_CONNECTED)},
+                (exc) => {Super.Event.pub(Super.Event.EVENT_STORAGE_NOT_CONNECTED, exc)}
             );
         }
 
@@ -1965,8 +1974,8 @@ WavesSlackRewardBot.Storage = (function() {
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_STORAGE_STAT_REQUEST_FAILED
-         * @fires Self.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED
+         * @fires Super.Event.EVENT_STORAGE_STAT_REQUEST_FAILED
+         * @fires Super.Event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED
          */
         async _getStat(data) {
             var
@@ -1988,13 +1997,13 @@ WavesSlackRewardBot.Storage = (function() {
 
             // No need to go further
             if (!list) {
-                Super.pub(Self.EVENT_STORAGE_STAT_REQUEST_FAILED, data);
+                Super.Event.pub(Super.Event.EVENT_STORAGE_STAT_REQUEST_FAILED, data);
                 return;
             }
 
             data.stat.list = list;
 
-            Super.pub(Self.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED, data);
+            Super.Event.pub(Super.Event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED, data);
         }
 
         /**
@@ -2065,8 +2074,8 @@ WavesSlackRewardBot.Storage = (function() {
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_STORAGE_SEED_REQUEST_FAILED
-         * @fires Self.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED
+         * @fires Super.Event.EVENT_STORAGE_SEED_REQUEST_FAILED
+         * @fires Super.Event.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED
          */
         async _getMySeed(data) {
             var
@@ -2074,7 +2083,7 @@ WavesSlackRewardBot.Storage = (function() {
 
             // No need to go further
             if (!wallet) {
-                Super.pub(Self.EVENT_STORAGE_SEED_REQUEST_FAILED, data);
+                Super.Event.pub(Super.Event.EVENT_STORAGE_SEED_REQUEST_FAILED, data);
                 return;
             }
 
@@ -2082,7 +2091,7 @@ WavesSlackRewardBot.Storage = (function() {
             data.emitent.seed = wallet[1];
 
             //
-            Super.pub(Self.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED, data);
+            Super.Event.pub(Super.Event.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED, data);
         }
 
         /**
@@ -2092,7 +2101,7 @@ WavesSlackRewardBot.Storage = (function() {
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED
+         * @fires Super.Event.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED
          */
         async _getMyAddress(data) {
             var
@@ -2100,7 +2109,7 @@ WavesSlackRewardBot.Storage = (function() {
 
             // No need to go further
             if (!wallet) {
-                Super.pub(Self.EVENT_STORAGE_ADDRESS_REQUEST_FAILED, data);
+                Super.Event.pub(Super.Event.EVENT_STORAGE_ADDRESS_REQUEST_FAILED, data);
                 return;
             }
 
@@ -2108,7 +2117,7 @@ WavesSlackRewardBot.Storage = (function() {
             data.emitent.address = wallet[2];
 
             //
-            Super.pub(Self.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED, data);
+            Super.Event.pub(Super.Event.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED, data);
         }
 
         /**
@@ -2118,7 +2127,7 @@ WavesSlackRewardBot.Storage = (function() {
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_STORAGE_REQUEST_BALANCE
+         * @fires Super.Event.EVENT_STORAGE_REQUEST_BALANCE
          */
         async _getMyBalance(data) {
             var
@@ -2133,7 +2142,7 @@ WavesSlackRewardBot.Storage = (function() {
             data.emitent.address = wallet[2];
 
             // 
-            Super.pub(Self.EVENT_STORAGE_REQUEST_BALANCE, data);
+            Super.Event.pub(Super.Event.EVENT_STORAGE_REQUEST_BALANCE, data);
         }
 
 
@@ -2144,7 +2153,7 @@ WavesSlackRewardBot.Storage = (function() {
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_STORAGE_NO_WALLET
+         * @fires Super.Event.EVENT_STORAGE_NO_WALLET
          *
          * @returns {object}
          */
@@ -2159,7 +2168,7 @@ WavesSlackRewardBot.Storage = (function() {
 
             // No need to go further
             if (!wallet || !wallet.rowCount) {
-                Super.pub(Self.EVENT_STORAGE_NO_WALLET, data);
+                Super.Event.pub(Super.Event.EVENT_STORAGE_NO_WALLET, data);
                 return null;
             }
 
@@ -2173,10 +2182,10 @@ WavesSlackRewardBot.Storage = (function() {
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_STORAGE_NO_WALLETS
-         * @fires Self.EVENT_STORAGE_NO_EMITTER_WALLET
-         * @fires Self.EVENT_STORAGE_NO_RECIPIENT_WALLET
-         * @fires Self.EVENT_STORAGE_TRANSFER_WAVES
+         * @fires Super.Event.EVENT_STORAGE_NO_WALLETS
+         * @fires Super.Event.EVENT_STORAGE_NO_EMITTER_WALLET
+         * @fires Super.Event.EVENT_STORAGE_NO_RECIPIENT_WALLET
+         * @fires Super.Event.EVENT_STORAGE_TRANSFER_WAVES
          */
         async _checkWallets(data) {
             var
@@ -2188,7 +2197,7 @@ WavesSlackRewardBot.Storage = (function() {
 
             // No need to go further
             if (!wallets || !wallets.rowCount) {
-                Super.pub(Self.EVENT_STORAGE_NO_WALLETS, data);
+                Super.Event.pub(Super.Event.EVENT_STORAGE_NO_WALLETS, data);
                 return;
             }
 
@@ -2203,14 +2212,14 @@ WavesSlackRewardBot.Storage = (function() {
 
             // No need to go further
             if (!data.emitent.phrase) {
-                Super.pub(Self.EVENT_STORAGE_NO_EMITTER_WALLET, data);
+                Super.Event.pub(Super.Event.EVENT_STORAGE_NO_EMITTER_WALLET, data);
                 return;
             } else if (!data.recipient.address) {
-                Super.pub(Self.EVENT_STORAGE_NO_RECIPIENT_WALLET, data);
+                Super.Event.pub(Super.Event.EVENT_STORAGE_NO_RECIPIENT_WALLET, data);
                 return;
             }
 
-            Super.pub(Self.EVENT_STORAGE_TRANSFER_WAVES, data);
+            Super.Event.pub(Super.Event.EVENT_STORAGE_TRANSFER_WAVES, data);
         }
 
         /**
@@ -2220,8 +2229,8 @@ WavesSlackRewardBot.Storage = (function() {
          *
          * @param {object} data
          *
-         * @fires Self.EVENT_STORAGE_TRANSFER_NOT_COMPLETED
-         * @fires Self.EVENT_STORAGE_TRANSFER_COMPLETED
+         * @fires Super.Event.EVENT_STORAGE_TRANSFER_NOT_COMPLETED
+         * @fires Super.Event.EVENT_STORAGE_TRANSFER_COMPLETED
          */
         async _addTransaction(data) {
             var
@@ -2238,11 +2247,11 @@ WavesSlackRewardBot.Storage = (function() {
 
             // No need to go further
             if (!res || !res.rowCount) {
-                Super.pub(Self.EVENT_STORAGE_TRANSFER_NOT_COMPLETED, data);
+                Super.Event.pub(Super.Event.EVENT_STORAGE_TRANSFER_NOT_COMPLETED, data);
                 return;
             }
 
-            Super.pub(Self.EVENT_STORAGE_TRANSFER_COMPLETED, data);
+            Super.Event.pub(Super.Event.EVENT_STORAGE_TRANSFER_COMPLETED, data);
         }
 
     }
