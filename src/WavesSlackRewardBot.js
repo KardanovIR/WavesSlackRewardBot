@@ -541,7 +541,20 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {Array} WAVES_ALIASES
          */
         static get WAVES_ALIASES() {
-            return ['thave', 'coin', 'token'];
+            return [
+                'thave',
+                'thaves',
+                'coin',
+                'coins',
+                'token',
+                'tokens',
+                'монета',
+                'монеты',
+                'монет',
+                'токен',
+                'токена',
+                'токенов'
+            ];
         }
 
         /**
@@ -629,7 +642,9 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} REGEXP_INSTANT_MESSAGE
          */
         static get REGEXP_INSTANT_MESSAGE() {
-            return `(\\d+)[\\s\\S]+(${Self.WAVES_ALIASES.join('s?|')}s?)[\\s\\S]+<@([^>]+)>[\\s\\S]*`;
+            return '(\\d+)[\\s\\S]+(' +
+                   Self.WAVES_ALIASES.join('|') +
+                   ')[\\s\\S]+<@([^>]+)>[\\s\\S]*';
         }
 
         /**
@@ -645,7 +660,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_HELP
          */
         static get ANSWER_HELP() {
-            return `Available commands:\n\n— ${Self.CMD_LIST.join(',\n— ')}`;
+            return 'Available commands:\n\n— ' + Self.CMD_LIST.join(',\n— ');
         }
 
         /**
@@ -653,10 +668,9 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_NODE_REQUEST_ABORTED
          */
         static get ANSWER_NODE_REQUEST_ABORTED() {
-            return `
-                Oops! Seems like some serious internal error has been happened while transaction process.\n
-                Try to make it later.
-            `;
+            return '' +
+                'Oops! Seems like some serious internal error has been happened while' +
+                'transaction process.\n Try to make it later.';
         }
 
         /**
@@ -704,7 +718,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_INCORRECT_SYNTAX
          */
         static get ANSWER_INCORRECT_SYNTAX() {
-            return 'Incorrect syntax. You should write for example: «*10 thakes @user_nick*»';
+            return 'Incorrect syntax. You should write for example: *10 thakes @user_nick*';
         }
 
         /**
@@ -957,54 +971,54 @@ WavesSlackRewardBot.Slack = (function() {
         _route(event) {
             switch (event.type) {
 
-                // Tell that transfer was aborted
+                // Answer with default Node request abort
                 case Super.Node.EVENT_NODE_REQUEST_ABORTED:
                     this._answerDefaultNodeRequestAbort(event.data);
                     break;
 
-                // Tell that transfer was rejected
+                // Answer with default Node request reject
                 case Super.Node.EVENT_NODE_REQUEST_REJECTED:
                     this._answerDefaultNodeRequestReject(event.data);
                     break;
 
-                //
+                // Answer with default Node request success
                 case Super.Node.EVENT_NODE_REQUEST_SUCCEEDED:
                     if (event.data.balance) {
                         this._answerMyBalance(event.data);
                     }
                     break;
 
-                // Tell that transfer was completed
+                // Answer that transfer was completed
                 case Super.Storage.EVENT_STORAGE_TRANSFER_COMPLETED:
                     this._answerTransferCompleted(event.data)
                     break;
 
-                // 
+                // Answer that my wallet seed request failed
                 case Super.Storage.EVENT_STORAGE_SEED_REQUEST_FAILED:
                     this._answer(event.data.channel.id, Self.ANSWER_YOUR_SEED_IS_UNKNOWN);
                     break;
 
-                // 
+                // Answer that my wallet seed request succeeded
                 case Super.Storage.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED:
                     this._answerMySeed(event.data);
                     break;
 
-                // 
+                // Answer that my wallet address request failed
                 case Super.Storage.EVENT_STORAGE_ADDRESS_REQUEST_FAILED:
                     this._answer(event.data.channel.id, Self.ANSWER_ADDRESS_REQUEST_FAILED);
                     break;
 
-                // 
+                // Answer that my wallet address request succeeded
                 case Super.Storage.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED:
                     this._answerMyAddress(event.data);
                     break;
 
-                // 
+                // Answer that stat request failed
                 case Super.Storage.EVENT_STORAGE_STAT_REQUEST_FAILED:
                     this._answer(event.data.channel.id, Self.ANSWER_STAT_REQUEST_FAILED);
                     break;
 
-                // 
+                // Answer that stat request succeeded
                 case Super.Storage.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED:
                     this._answerStat(event.data)
                     break;
