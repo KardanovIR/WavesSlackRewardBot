@@ -421,9 +421,9 @@ WavesSlackRewardBot.Node = (function() {
                 request = null;
 
             // feeAssetId is for production operations only
-            if (CONF.DEV) {
-                params.feeAssetId = null;
-            }
+//             if (CONF.DEV) {
+//                 params.feeAssetId = null;
+//             }
 
             // Create request JSON object
             request = transfer(data.emitent.phrase, params);
