@@ -559,6 +559,9 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get WAVES_ALIASES() {
             return [
+                'thank',
+                'thanks',
+                'thank you',
                 'thave',
                 'thaves',
                 'coin',
@@ -669,6 +672,14 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get EVENT_SLACK_ADDRESS_REQUESTED() {
             return 'slackAddressRequested';
+        }
+
+        /**
+         * @static
+         * @const {string} REGEXP_USER
+         */
+        static get REGEXP_USER() {
+            return '<@([^>]+)>';
         }
 
         /**
@@ -823,20 +834,27 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
-         * @const {string} ANSWER_YOUR_BALANCE_IS
+         * @const {string} ANSWER_USER_BALANCE_IS
          */
-        static get ANSWER_YOUR_BALANCE_IS() {
-            return 'Your wallet balance is *${count}* ${pluralized}';
+        static get ANSWER_USER_BALANCE_IS() {
+            return '${user} wallet balance is *${count}* ${pluralized}';
         }
 
         /**
          * @static
-         * @const {string} ANSWER_YOUR_BALANCE_ISNT_COUNTED
+         * @const {string} ANSWER_YOUR_BALANCE_IS
          */
-        static get ANSWER_YOUR_BALANCE_ISNT_COUNTED() {
-            return Self.ANSWER_YOUR_BALANCE_IS.
-                   replace('${count}', 'unreachable').
-                   replace('${pluralized}', '');
+        static get ANSWER_YOUR_BALANCE_IS() {
+            return Self.ANSWER_USER_BALANCE_IS.
+                   replace('${user}', 'Your')
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_BALANCE_ISNT_COUNTED
+         */
+        static get ANSWER_BALANCE_ISNT_COUNTED() {
+            return 'Wasn\'t able to count balance';
         }
 
         /**
@@ -1250,24 +1268,33 @@ WavesSlackRewardBot.Slack = (function() {
         async _answerMyBalance(data) {
             // No need to go further
             if (!data || !data.balance || !data.balance.count) {
-                this._answer(data.channel.id, Self.ANSWER_YOUR_BALANCE_ISNT_COUNTED);
+                this._answer(data.channel.id, Self.ANSWER_BALANCE_ISNT_COUNTED);
                 return;
             }
 
-            this._answer(
-                data.channel.id,
-                (
-                    Self.ANSWER_YOUR_BALANCE_IS.
-                    replace('${count}', data.balance.count).
-                    replace('${pluralized}', Super.pluralize(
-                        data.balance.count,
-                        CONF.CURRENCY.ONE,
-                        CONF.CURRENCY.TWO,
-                        CONF.CURRENCY.ALL
-                    ))
-                ),
-                data.emitent.id
-            );
+            var
+                text = '';
+
+            // Choose text for message
+            if (data.recipient && data.recipient.id) {
+                text = Self.ANSWER_USER_BALANCE_IS.
+                       replace('${user}', Self._getTaggedUser(data.recipient.id));
+            } else {
+                text = Self.ANSWER_YOUR_BALANCE_IS;
+            }
+
+            // Fill other placeholders
+            text = text.
+                   replace('${count}', data.balance.count).
+                   replace('${pluralized}', Super.pluralize(
+                       data.balance.count,
+                       CONF.CURRENCY.ONE,
+                       CONF.CURRENCY.TWO,
+                       CONF.CURRENCY.ALL
+                   ));
+
+            // Send
+            this._answer(data.channel.id, text, data.emitent.id);
         }
 
         /**
@@ -1392,14 +1419,27 @@ WavesSlackRewardBot.Slack = (function() {
 
                 // 
                 case Self.CMD_GET_BALANCE:
-                    Super.pub(Self.EVENT_SLACK_BALANCE_REQUESTED, {
-                        channel : {id : event.channel},
-                        emitent : {id : event.user},
-                        balance : {}
-                    });
+                    this._parseCommandGetBalance(event);
                     break;
 
             }
+        }
+
+        _parseCommandGetBalance(event) {
+            var
+                recipient = event.text.match(new RegExp(Self.REGEXP_USER, 'g')),
+                data = {
+                            channel : {id : event.channel},
+                            emitent : {id : event.user},
+                            balance : {}
+                       };
+
+            // No need to go further
+            if (recipient && recipient.length) {
+                data.recipient = {id : recipient[0].replace(/[<>@]/g, '')};
+            }
+
+            Super.pub(Self.EVENT_SLACK_BALANCE_REQUESTED, data);
         }
 
         /**
@@ -2110,9 +2150,10 @@ WavesSlackRewardBot.Storage = (function() {
          */
         async _checkWallet(data) {
             var
+                id = (data.recipient ? data.recipient.id : data.emitent.id),
                 wallet = await this._request(
                               Self.SQL_GET_WALLET_ID,
-                              [data.emitent.id],
+                              [id],
                               'array'
                           ).catch(Super.error);
 
