@@ -412,6 +412,7 @@ WavesSlackRewardBot.Node = (function() {
         _transferWaves(data) {
             var
                 params = {
+                             fee : CONF.WAVES_API.FEE_AMOUNT,
                              alias : 'SlackBotTransfer',
                              amount : data.transfer.amount,
                              recipient : data.recipient.address,
@@ -548,12 +549,29 @@ WavesSlackRewardBot.Slack = (function() {
                 'coins',
                 'token',
                 'tokens',
-                'монета',
-                'монеты',
                 'монет',
+                'монета',
+                'монету',
+                'монеты',
+                'монетка',
+                'монетки',
+                'монетку',
+                'монеток',
                 'токен',
                 'токена',
-                'токенов'
+                'токенов',
+                'благодарность',
+                'благодарности',
+                'благодарностей',
+                'спасиб',
+                'спасиба',
+                'спасибо',
+                'спасибу',
+                'спасибы',
+                'спасибов',
+                'спасибищ',
+                'спасибища',
+                'спасибище'
             ];
         }
 
@@ -687,6 +705,14 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get ANSWER_TRANSFER_COMPLETED() {
             return 'Your request completed. (*<${link}|${hash}>*)';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT
+         */
+        static get ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT() {
+            return 'User ${user} transfered you <${link}|${amount} ${pluralized}>';
         }
 
         /**
@@ -1085,13 +1111,14 @@ WavesSlackRewardBot.Slack = (function() {
          * @param {string} channel
          * @param {string} text
          * @param {string} uid
+         * @param {boolean} forceIM
          */
-        async _answer(channel, text, uid) {
+        async _answer(channel, text, uid, forceIM = false) {
             var
                 im = await this._isIM(channel).catch(Super.error);
 
             // 
-            if (!im) {
+            if (!im || forceIM) {
                 channel = `@${uid}`;
             }
 
@@ -1147,7 +1174,24 @@ WavesSlackRewardBot.Slack = (function() {
                        replace('${link}', link).
                        replace('${hash}', data.transfer.id);
 
+            // Tell emitent that transfer succeeded
             this._answer(data.channel.id, text, data.emitent.id);
+
+            // Tell recipient that transfer happened
+            setTimeout(() => {
+                text = Self.ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT.
+                       replace('${user}', Self._getTaggedUser(data.emitent.id)).
+                       replace('${link}', link).
+                       replace('${amount}', data.transfer.amount).
+                       replace('${pluralized}', Super.pluralize(
+                           data.transfer.amount,
+                           CONF.CURRENCY.ONE,
+                           CONF.CURRENCY.TWO,
+                           CONF.CURRENCY.ALL
+                       ));
+
+                this._answer(data.channel.id, text, data.recipient.id, true);
+            }, CONF.SLACK_API.MESSAGE_TIMEOUT);
         }
 
         /**
