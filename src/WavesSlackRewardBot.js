@@ -8,7 +8,7 @@
  * @see https://www.npmjs.com/package/forever
  * @see https://inch-ci.org/github/foreverjs/forever
  *
- * $ forever start /home/user/forever/development.son
+ * $ forever start /home/user/forever/development.json
  * $ forever stop BillyBot
  */
 
