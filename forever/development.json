@@ -1,0 +1,11 @@
+{
+    "uid": "BillyBot",
+    "append": true,
+    "watch": true,
+    "script": "run.js",
+    "sourceDir": "/home/alunev/slackbot_test/",
+    "args": [
+        "--minUptime", 10000,
+        "--spinSleepTime", 60000
+    ]
+}

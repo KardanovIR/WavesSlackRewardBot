@@ -48,7 +48,7 @@ let SlackRewardBotWalletsFiller = (function() {
             // Init submodules
             this._modules = {
                 node : WavesAPI.create(WavesAPI.TESTNET_CONFIG),
-                slack : new WebClient(CONF.SLACK_API.token),
+                slack : new WebClient(CONF.SLACK_API.TOKEN),
                 storage : new Client(CONF.DB)
             };
 

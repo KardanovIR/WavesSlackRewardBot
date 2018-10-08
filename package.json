@@ -11,6 +11,8 @@
   "dependencies": {
     "@slack/client": "^4.6.0",
     "@waves/waves-api": "^1.5.1",
+    "forever": "^0.15.3",
+    "forever-monitor": "^1.7.1",
     "pg": "^7.4.3",
     "restler": "^3.4.0",
     "serialize-json": "^1.0.2",

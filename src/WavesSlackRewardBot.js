@@ -4,6 +4,12 @@
  * @author Shushik <silkleopard@yandex.ru>
  * @version 1.0
  * @license MIT
+ *
+ * @see https://www.npmjs.com/package/forever
+ * @see https://inch-ci.org/github/foreverjs/forever
+ *
+ * $ forever start /home/user/forever/development.son
+ * $ forever stop BillyBot
  */
 
 
@@ -170,6 +176,7 @@ let WavesSlackRewardBot = (function() {
 
             switch (event.type) {
 
+/*
                 // Waves API module is ready
                 case Self.Event.EVENT_NODE_CONNECTED:
                     console.log(Self.MESSAGE_NODE_CONNECTED);
@@ -199,6 +206,7 @@ let WavesSlackRewardBot = (function() {
                 case Self.Event.EVENT_STORAGE_NOT_CONNECTED:
                     console.log(Self.MESSAGE_STORAGE_NOT_CONNECTED);
                     break;
+*/
 
             }
         }
@@ -596,14 +604,17 @@ WavesSlackRewardBot.Node = (function() {
             Restler.get(url).
             on('fail', (res, xhr) => {
                 data.ok = false;
+                data.answer = res;
                 Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_REJECTED, data)
             }).
             on('error', (exc, xhr) => {
                 data.ok = false;
+                data.answer = exc;
                 Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_ABORTED, data);
             }).
-            on('timeout', (exc, xhr) => {
+            on('timeout', (res, xhr) => {
                 data.ok = false;
+                data.answer = res;
                 Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_ABORTED, data);
             }).
             on('success', (res, xhr) => {
@@ -642,15 +653,17 @@ WavesSlackRewardBot.Node = (function() {
             Restler.postJson(CONF.WAVES_API.TRANSACTION_URL, request).
             on('fail', (res, xhr) => {
                 data.ok = false;
-                data.transfer.answer = res.message;
+                data.answer = res.message;
                 Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_REJECTED, data);
             }).
             on('error', (exc, xhr) => {
                 data.ok = false;
+                data.answer = exc;
                 Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_ABORTED, data);
             }).
-            on('timeout', (exc, xhr) => {
+            on('timeout', (res, xhr) => {
                 data.ok = false;
+                data.answer = res.message;
                 Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_ABORTED, data);
             }).
             on('success', (res, xhr) => {
@@ -768,6 +781,11 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get WAVES_ALIASES() {
             return [
+                'ThanksCoin',
+                'ThanksCoins',
+                'Thankscoins',
+                'thanksCoins',
+                'thankscoins',
                 'thank',
                 'thanks',
                 'thank you',
@@ -808,7 +826,12 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {Array} REWARDED_REACTIONS
          */
         static get REWARDED_REACTIONS() {
-            return ['+1', 'heart'];
+            return [
+                'waves_new_logo',
+                'dolphin',
+                'billy',
+                'billy2'
+            ];
         }
 
         /**
@@ -908,7 +931,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_INCORRECT_SYNTAX
          */
         static get ANSWER_INCORRECT_SYNTAX() {
-            return 'Incorrect syntax. You should write for example: *10 thakes @user_nick*';
+            return 'Incorrect syntax. You should write for example: *10 ThanksCoins @user_nick*';
         }
 
         /**
@@ -1324,7 +1347,7 @@ WavesSlackRewardBot.Slack = (function() {
                 data.channel.id,
                 (
                     Self.ANSWER_NODE_REQUEST_REJECTED +
-                    (data.transfer.answer ? ' ' + data.transfer.answer : '')
+                    (data.answer ? ' ' + data.answer : '')
                 ),
                 data.emitent.id
             );
@@ -1670,7 +1693,7 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @private
-         * @method _finishGranting
+         * @method _finishParsing
          *
          * @param {string} channel
          * @param {boolean} im
