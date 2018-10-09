@@ -37,54 +37,6 @@ let WavesSlackRewardBot = (function() {
 
         /**
          * @static
-         * @const {string} MESSAGE_NODE_CONNECTED
-         */
-        static get MESSAGE_NODE_CONNECTED() {
-            return `Waves module is ready`;
-        }
-
-        /**
-         * @static
-         * @const {string} MESSAGE_NODE_NOT_CONNECTED
-         */
-        static get MESSAGE_NODE_NOT_CONNECTED() {
-            return `Waves module isn't ready`;
-        }
-
-        /**
-         * @static
-         * @const {string} MESSAGE_SLACK_CONNECTED
-         */
-        static get MESSAGE_SLACK_CONNECTED() {
-            return `Slack module is ready`;
-        }
-
-        /**
-         * @static
-         * @const {string} MESSAGE_SLACK_NOT_CONNECTED
-         */
-        static get MESSAGE_SLACK_NOT_CONNECTED() {
-            return `Slack module isn't ready`;
-        }
-
-        /**
-         * @static
-         * @const {string} MESSAGE_STORAGE_CONNECTED
-         */
-        static get MESSAGE_STORAGE_CONNECTED() {
-            return `Storage module is ready`;
-        }
-
-        /**
-         * @static
-         * @const {string} MESSAGE_STORAGE_NOT_CONNECTED
-         */
-        static get MESSAGE_STORAGE_NOT_CONNECTED() {
-            return `Storage module isn't ready`;
-        }
-
-        /**
-         * @static
          * @method error
          *
          * @param {object|Error} exc
@@ -154,12 +106,14 @@ let WavesSlackRewardBot = (function() {
          * @method _live
          */
         _live() {
-            Self.Event.sub(Self.Event.EVENT_NODE_CONNECTED, this._route);
-            Self.Event.sub(Self.Event.EVENT_NODE_NOT_CONNECTED, this._route);
-            Self.Event.sub(Self.Event.EVENT_SLACK_CONNECTED, this._route);
-            Self.Event.sub(Self.Event.EVENT_SLACK_NOT_CONNECTED, this._route);
-            Self.Event.sub(Self.Event.EVENT_STORAGE_CONNECTED, this._route);
-            Self.Event.sub(Self.Event.EVENT_STORAGE_NOT_CONNECTED, this._route);
+            if (CONF.DEV) {
+                Self.Event.sub(Self.Event.EVENT_NODE_CONNECTED, this._route);
+                Self.Event.sub(Self.Event.EVENT_NODE_NOT_CONNECTED, this._route);
+                Self.Event.sub(Self.Event.EVENT_SLACK_CONNECTED, this._route);
+                Self.Event.sub(Self.Event.EVENT_SLACK_NOT_CONNECTED, this._route);
+                Self.Event.sub(Self.Event.EVENT_STORAGE_CONNECTED, this._route);
+                Self.Event.sub(Self.Event.EVENT_STORAGE_NOT_CONNECTED, this._route);
+            }
         }
 
         /**
@@ -176,37 +130,35 @@ let WavesSlackRewardBot = (function() {
 
             switch (event.type) {
 
-/*
                 // Waves API module is ready
                 case Self.Event.EVENT_NODE_CONNECTED:
-                    console.log(Self.MESSAGE_NODE_CONNECTED);
+                    console.log(Self.Lang.MESSAGE_NODE_CONNECTED);
                     break;
 
                 // Waves API module isn't ready
                 case Self.Event.EVENT_NODE_NOT_CONNECTED:
-                    console.log(Self.MESSAGE_NODE_NOT_CONNECTED);
+                    console.log(Self.Lang.MESSAGE_NODE_NOT_CONNECTED);
                     break;
 
                 // Slack module is ready
                 case Self.Event.EVENT_SLACK_CONNECTED:
-                    console.log(Self.MESSAGE_SLACK_CONNECTED);
+                    console.log(Self.Lang.MESSAGE_SLACK_CONNECTED);
                     break;
 
                 // Slack module isn't ready
                 case Self.Event.EVENT_SLACK_NOT_CONNECTED:
-                    console.log(Self.MESSAGE_SLACK_NOT_CONNECTED);
+                    console.log(Self.Lang.MESSAGE_SLACK_NOT_CONNECTED);
                     break;
 
                 // Storage module is ready
                 case Self.Event.EVENT_STORAGE_CONNECTED:
-                    console.log(Self.MESSAGE_STORAGE_CONNECTED);
+                    console.log(Self.Lang.MESSAGE_STORAGE_CONNECTED);
                     break;
 
                 // Storage module isn't ready
                 case Self.Event.EVENT_STORAGE_NOT_CONNECTED:
-                    console.log(Self.MESSAGE_STORAGE_NOT_CONNECTED);
+                    console.log(Self.Lang.MESSAGE_STORAGE_NOT_CONNECTED);
                     break;
-*/
 
             }
         }
@@ -217,6 +169,352 @@ let WavesSlackRewardBot = (function() {
     return Self;
 
 })();
+
+
+
+/**
+ * @class WavesSlackRewardBot.Lang
+ */
+WavesSlackRewardBot.Lang = (function() {
+
+    // Root module
+    let Super = this;
+
+    // Class definition
+    class Self {
+
+        /**
+         * @static
+         * @const {string} MESSAGE_NODE_CONNECTED
+         */
+        static get MESSAGE_NODE_CONNECTED() {
+            return `Waves module is ready`;
+        }
+
+        /**
+         * @static
+         * @const {string} MESSAGE_NODE_NOT_CONNECTED
+         */
+        static get MESSAGE_NODE_NOT_CONNECTED() {
+            return `Waves module isn't ready`;
+        }
+
+        /**
+         * @static
+         * @const {string} MESSAGE_SLACK_CONNECTED
+         */
+        static get MESSAGE_SLACK_CONNECTED() {
+            return `Slack module is ready`;
+        }
+
+        /**
+         * @static
+         * @const {string} MESSAGE_SLACK_NOT_CONNECTED
+         */
+        static get MESSAGE_SLACK_NOT_CONNECTED() {
+            return `Slack module isn't ready`;
+        }
+
+        /**
+         * @static
+         * @const {string} MESSAGE_STORAGE_CONNECTED
+         */
+        static get MESSAGE_STORAGE_CONNECTED() {
+            return `Storage module is ready`;
+        }
+
+        /**
+         * @static
+         * @const {string} MESSAGE_STORAGE_NOT_CONNECTED
+         */
+        static get MESSAGE_STORAGE_NOT_CONNECTED() {
+            return `Storage module isn't ready`;
+        }
+
+        /**
+         * @static
+         * @const {Array} CURRENCY_ALIASES
+         */
+        static get CURRENCY_ALIASES() {
+            return [
+                'ThanksCoin',
+                'ThanksCoins',
+                'Thankscoins',
+                'thanksCoins',
+                'thankscoins',
+                'thank',
+                'thanks',
+                'thank you',
+                'thave',
+                'thaves',
+                'coin',
+                'coins',
+                'token',
+                'tokens',
+                'монет',
+                'монета',
+                'монету',
+                'монеты',
+                'монетка',
+                'монетки',
+                'монетку',
+                'монеток',
+                'токен',
+                'токена',
+                'токенов',
+                'благодарность',
+                'благодарности',
+                'благодарностей',
+                'спасиб',
+                'спасиба',
+                'спасибо',
+                'спасибу',
+                'спасибы',
+                'спасибов',
+                'спасибищ',
+                'спасибища',
+                'спасибище'
+            ];
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_PONG
+         */
+        static get ANSWER_PONG() {
+            return ':whale:';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_HELP
+         */
+        static get ANSWER_HELP() {
+            var
+                emojis = ':' + CONF.SLACK_API.REWARDED_REACTIONS.join(': :') + ':';
+
+            return '' +
+                '*Привет!*\n\n' +
+                'Меня зовут Билли и я дельфин. Я могу помогать отправлять спасибо токены твоим коллегам. Каждый месяц на кошелек, созданный для каждого сотрудника компании, перечисляется 100 монет. Вы можете раздавать их своим коллегам.\n\n' +
+                '*Это можно сделать тремя способами:*\n' +
+                '*1.* Напиши в любом канале, куда меня пригласили, команду вида `@Billy 2 спасибо @sasha` и я отправлю 2 монеты указанному пользователю;\n' +
+                '*2.* Добавь эмодзи ' + emojis + ' к сообщению пользователя и я отправлю ему 1 монету;\n' +
+                '*3.* Напиши мне в приват `10 спасибо @sasha` и я отправлю 10 монет указанному пользователю.\n\n' +
+                '*Также в привате доступны следующие команды:*\n' +
+                '*•* `address` — вовзращает адрес вашего кошелька;\n' +
+                '*•* `balance` — возращает ваш баланс;\n' +
+                '*•* `balance @sasha` — возращает баланс указанного пользователя;\n' +
+                '*•* `help` — список доступных команд;\n' +
+                '*•* `ping` — проверка жив ли бот;\n' +
+                '*•* `seed` — сид фраза вашего кошелька;\n' +
+                '*•* `stat month` — статистика по полученным токенам за месяц для всех сотрудников;\n' +
+                '*•* `stat balances` — накопленный итог всех транзакций для всех сотрудников.' +
+                '';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_NODE_REQUEST_ABORTED
+         */
+        static get ANSWER_NODE_REQUEST_ABORTED() {
+            return '' +
+                'Oops! Seems like some serious internal error has been happened while' +
+                'transaction process.\n Try to make it later.';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_NODE_REQUEST_REJECTED
+         */
+        static get ANSWER_NODE_REQUEST_REJECTED() {
+            return 'Your request rejected.';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_TRANSFER_COMPLETED
+         */
+        static get ANSWER_TRANSFER_COMPLETED() {
+            return 'Your request completed. (*<${link}|${hash}>*)';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT
+         */
+        static get ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT() {
+            return 'User ${user} transferred to you <${link}|${amount} ${pluralized}>';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_THANK_YOU
+         */
+        static get ANSWER_THANK_YOU() {
+            return 'Will try to do immediately. Thanks for your generosity.';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_NOT_TO_MYSELF
+         */
+        static get ANSWER_NOT_TO_MYSELF() {
+            return 'I cannot afford it. I\'m at the service.';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_NOT_TO_YOURSELF
+         */
+        static get ANSWER_NOT_TO_YOURSELF() {
+            return 'You\'re trying to transfer to yourself.';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_INCORRECT_SYNTAX
+         */
+        static get ANSWER_INCORRECT_SYNTAX() {
+            return 'Incorrect syntax. You should write for example: *10 ThanksCoins @user_nick*';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_ALL_COUNTED
+         */
+        static get ANSWER_ALL_COUNTED() {
+            return 'Top stat:\n\n';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_TOP_COUNTED
+         */
+        static get ANSWER_TOP_COUNTED() {
+            return 'Top stat for month:\n\n';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_TOP_COUNTED_NOTHING
+         */
+        static get ANSWER_TOP_COUNTED_NOTHING() {
+            return 'No transactions yet.';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_YOUR_SEED_IS
+         */
+        static get ANSWER_YOUR_SEED_IS() {
+            return 'Your wallet seed is *${seed}*';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_YOUR_SEED_IS_UNKNOWN
+         */
+        static get ANSWER_YOUR_SEED_IS_UNKNOWN() {
+            return Self.ANSWER_YOUR_SEED_IS.
+                   replace('${seed}', 'unknown');
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_YOUR_ADDRESS_IS
+         */
+        static get ANSWER_YOUR_ADDRESS_IS() {
+            return 'Your wallet address is *${address}*';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_YOUR_ADDRESS_IS_UNKNOWN
+         */
+        static get ANSWER_YOUR_ADDRESS_IS_UNKNOWN() {
+            return Self.ANSWER_YOUR_ADDRESS_IS.
+                   replace('${address}', 'unknown');
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_USER_BALANCE_IS
+         */
+        static get ANSWER_USER_BALANCE_IS() {
+            return '${user} wallet balance is *${count}* ${pluralized}';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_YOUR_BALANCE_IS
+         */
+        static get ANSWER_YOUR_BALANCE_IS() {
+            return Self.ANSWER_USER_BALANCE_IS.
+                   replace('${user}', 'Your')
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_BALANCE_ISNT_COUNTED
+         */
+        static get ANSWER_BALANCE_ISNT_COUNTED() {
+            return 'Wasn\'t able to count balance';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_STAT_REQUEST_FAILED
+         */
+        static get ANSWER_STAT_REQUEST_FAILED() {
+            return 'Cannot compute';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_STAT_REQUEST_SUCCEEDED
+         */
+        static get ANSWER_STAT_REQUEST_SUCCEEDED() {
+            return 'Statistics for ${head}:\n${body}';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_STAT_REQUEST_ITEM
+         */
+        static get ANSWER_STAT_REQUEST_ITEM() {
+            return '\n${user} *${thaves}*';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_STAT_REQUEST_BREAK
+         */
+        static get ANSWER_STAT_REQUEST_BREAK() {
+            return '\n…';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_STAT_REQUEST_HEAD_FOR_MONTH
+         */
+        static get ANSWER_STAT_REQUEST_HEAD_FOR_MONTH() {
+            return 'month';
+        }
+
+        /**
+         * @static
+         * @const {string} ANSWER_STAT_REQUEST_HEAD_FOR_BALANCES
+         */
+        static get ANSWER_STAT_REQUEST_HEAD_FOR_BALANCES() {
+            return 'balances';
+        }
+
+    }
+
+    // Class export
+    return Self;
+
+}).call(WavesSlackRewardBot);
 
 
 
@@ -760,15 +1058,7 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
-         * @const {Array} CMD_PING
-         */
-        static get CMD_PING() {
-            return 'ping';
-        }
-
-        /**
-         * @static
-         * @const {Array} CMD_HELP
+         * @const {string} CMD_HELP
          */
         static get CMD_HELP() {
             return 'help';
@@ -776,7 +1066,23 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
-         * @const {Array} CMD_GET_SEED
+         * @const {string} CMD_PING
+         */
+        static get CMD_PING() {
+            return 'ping';
+        }
+
+        /**
+         * @static
+         * @const {string} CMD_GET_ME
+         */
+        static get CMD_GET_ME() {
+            return 'me';
+        }
+
+        /**
+         * @static
+         * @const {string} CMD_GET_SEED
          */
         static get CMD_GET_SEED() {
             return 'seed';
@@ -784,7 +1090,7 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
-         * @const {Array} CMD_GET_STAT
+         * @const {string} CMD_GET_STAT
          */
         static get CMD_GET_STAT() {
             return 'stat';
@@ -792,7 +1098,7 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
-         * @const {Array} CMD_GET_ADDRESS
+         * @const {string} CMD_GET_ADDRESS
          */
         static get CMD_GET_ADDRESS() {
             return 'address';
@@ -800,7 +1106,7 @@ WavesSlackRewardBot.Slack = (function() {
 
         /**
          * @static
-         * @const {Array} CMD_GET_BALANCE
+         * @const {string} CMD_GET_BALANCE
          */
         static get CMD_GET_BALANCE() {
             return 'balance';
@@ -812,93 +1118,13 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get CMD_LIST() {
             return [
-                Self.CMD_PING,
                 Self.CMD_HELP,
+                Self.CMD_PING,
+                Self.CMD_GET_ME,
                 Self.CMD_GET_SEED,
                 Self.CMD_GET_STAT,
                 Self.CMD_GET_ADDRESS,
                 Self.CMD_GET_BALANCE
-            ];
-        }
-
-        /**
-         * @static
-         * @const {Array} CMD_FULL_LIST
-         */
-        static get CMD_FULL_LIST() {
-            var
-                list = Self.CMD_LIST.slice();
-
-            list.push('stat month');
-            list.push('stat balances');
-
-            list.sort();
-
-            return list;
-        }
-
-        /**
-         * @static
-         * @const {Array} WAVES_ALIASES
-         */
-        static get WAVES_ALIASES() {
-            return [
-                'ThanksCoin',
-                'ThanksCoins',
-                'Thankscoins',
-                'thanksCoins',
-                'thankscoins',
-                'thank',
-                'thanks',
-                'thank you',
-                'thave',
-                'thaves',
-                'coin',
-                'coins',
-                'token',
-                'tokens',
-                'монет',
-                'монета',
-                'монету',
-                'монеты',
-                'монетка',
-                'монетки',
-                'монетку',
-                'монеток',
-                'токен',
-                'токена',
-                'токенов',
-                'благодарность',
-                'благодарности',
-                'благодарностей',
-                'спасиб',
-                'спасиба',
-                'спасибо',
-                'спасибу',
-                'спасибы',
-                'спасибов',
-                'спасибищ',
-                'спасибища',
-                'спасибище'
-            ];
-        }
-
-        /**
-         * @static
-         * @const {Array} REWARDED_REACTIONS
-         */
-        static get REWARDED_REACTIONS() {
-            return [
-                '+1',
-                'clap',
-                'clapping',
-                'fire',
-                'heart',
-                'heavy_plus_sign',
-                'waves_new_logo',
-                'dolphin',
-                'billy',
-                'billy2'
             ];
         }
 
@@ -916,240 +1142,8 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get REGEXP_INSTANT_MESSAGE() {
             return '(\\d+)[\\s\\S]+(' +
-                   Self.WAVES_ALIASES.join('|') +
+                   Super.Lang.CURRENCY_ALIASES.join('|') +
                    ')[\\s\\S]+<@([^>]+)>[\\s\\S]*';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_PONG
-         */
-        static get ANSWER_PONG() {
-            return ':whale:';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_HELP
-         */
-        static get ANSWER_HELP() {
-            var
-                emojis = ':' + Self.REWARDED_REACTIONS.join(': :') + ':';
-
-            return '' +
-                '*Привет!*\n\n' +
-                'Меня зовут Билли и я дельфин. Я могу помогать отправлять спасибо токены твоим коллегам. Каждый месяц на кошелек, созданный для каждого сотрудника компании, перечисляется 100 монет. Вы можете раздавать их своим коллегам.\n\n' +
-                '*Это можно сделать тремя способами:*\n' +
-                '*1.* Напиши в любом канале, куда меня пригласили, команду вида `@Billy 2 спасибо @sasha` и я отправлю 2 монеты указанному пользователю;\n' +
-                '*2.* Добавь эмодзи ' + emojis + ' к сообщению пользователя и я отправлю ему 1 монету;\n' +
-                '*3.* Напиши мне в приват `10 спасибо @sasha` и я отправлю 10 монет указанному пользователю.\n\n' +
-                '*Также в привате доступны следующие команды:*\n' +
-                '*•* `address` — вовзращает адрес вашего кошелька;\n' +
-                '*•* `balance` — возращает ваш баланс;\n' +
-                '*•* `balance @sasha` — возращает баланс указанного пользователя;\n' +
-                '*•* `help` — список доступных команд;\n' +
-                '*•* `ping` — проверка жив ли бот;\n' +
-                '*•* `seed` — сид фраза вашего кошелька;\n' +
-                '*•* `stat month` — статистика по полученным токенам за месяц для всех сотрудников;\n' +
-                '*•* `stat balances` — накопленный итог всех транзакций для всех сотрудников.' +
-                '';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_NODE_REQUEST_ABORTED
-         */
-        static get ANSWER_NODE_REQUEST_ABORTED() {
-            return '' +
-                'Oops! Seems like some serious internal error has been happened while' +
-                'transaction process.\n Try to make it later.';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_NODE_REQUEST_REJECTED
-         */
-        static get ANSWER_NODE_REQUEST_REJECTED() {
-            return 'Your request rejected.';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_TRANSFER_COMPLETED
-         */
-        static get ANSWER_TRANSFER_COMPLETED() {
-            return 'Your request completed. (*<${link}|${hash}>*)';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT
-         */
-        static get ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT() {
-            return 'User ${user} transferred to you <${link}|${amount} ${pluralized}>';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_THANK_YOU
-         */
-        static get ANSWER_THANK_YOU() {
-            return 'Will try to do immediately. Thanks for your generosity.';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_NOT_TO_MYSELF
-         */
-        static get ANSWER_NOT_TO_MYSELF() {
-            return 'I cannot afford it. I\'m at the service.';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_NOT_TO_YOURSELF
-         */
-        static get ANSWER_NOT_TO_YOURSELF() {
-            return 'You\'re trying to transfer to yourself.';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_INCORRECT_SYNTAX
-         */
-        static get ANSWER_INCORRECT_SYNTAX() {
-            return 'Incorrect syntax. You should write for example: *10 ThanksCoins @user_nick*';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_ALL_COUNTED
-         */
-        static get ANSWER_ALL_COUNTED() {
-            return 'Top stat:\n\n';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_TOP_COUNTED
-         */
-        static get ANSWER_TOP_COUNTED() {
-            return 'Top stat for month:\n\n';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_TOP_COUNTED_NOTHING
-         */
-        static get ANSWER_TOP_COUNTED_NOTHING() {
-            return 'No transactions yet.';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_YOUR_SEED_IS
-         */
-        static get ANSWER_YOUR_SEED_IS() {
-            return 'Your wallet seed is *${seed}*';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_YOUR_SEED_IS_UNKNOWN
-         */
-        static get ANSWER_YOUR_SEED_IS_UNKNOWN() {
-            return Self.ANSWER_YOUR_SEED_IS.
-                   replace('${seed}', 'unknown');
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_YOUR_ADDRESS_IS
-         */
-        static get ANSWER_YOUR_ADDRESS_IS() {
-            return 'Your wallet address is *${address}*';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_YOUR_ADDRESS_IS_UNKNOWN
-         */
-        static get ANSWER_YOUR_ADDRESS_IS_UNKNOWN() {
-            return Self.ANSWER_YOUR_ADDRESS_IS.
-                   replace('${address}', 'unknown');
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_USER_BALANCE_IS
-         */
-        static get ANSWER_USER_BALANCE_IS() {
-            return '${user} wallet balance is *${count}* ${pluralized}';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_YOUR_BALANCE_IS
-         */
-        static get ANSWER_YOUR_BALANCE_IS() {
-            return Self.ANSWER_USER_BALANCE_IS.
-                   replace('${user}', 'Your')
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_BALANCE_ISNT_COUNTED
-         */
-        static get ANSWER_BALANCE_ISNT_COUNTED() {
-            return 'Wasn\'t able to count balance';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_STAT_REQUEST_FAILED
-         */
-        static get ANSWER_STAT_REQUEST_FAILED() {
-            return 'Cannot compute';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_STAT_REQUEST_SUCCEEDED
-         */
-        static get ANSWER_STAT_REQUEST_SUCCEEDED() {
-            return 'Statistics for ${head}:\n${body}';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_STAT_REQUEST_ITEM
-         */
-        static get ANSWER_STAT_REQUEST_ITEM() {
-            return '\n${user} *${thaves}*';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_STAT_REQUEST_BREAK
-         */
-        static get ANSWER_STAT_REQUEST_BREAK() {
-            return '\n…';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_STAT_REQUEST_HEAD_FOR_MONTH
-         */
-        static get ANSWER_STAT_REQUEST_HEAD_FOR_MONTH() {
-            return 'month';
-        }
-
-        /**
-         * @static
-         * @const {string} ANSWER_STAT_REQUEST_HEAD_FOR_BALANCES
-         */
-        static get ANSWER_STAT_REQUEST_HEAD_FOR_BALANCES() {
-            return 'balances';
         }
 
         /**
@@ -1304,7 +1298,7 @@ WavesSlackRewardBot.Slack = (function() {
 
                 // Answer that my wallet seed request failed
                 case Super.Event.EVENT_STORAGE_SEED_REQUEST_FAILED:
-                    this._answer(event.data.channel.id, Self.ANSWER_YOUR_SEED_IS_UNKNOWN);
+                    this._answer(event.data.channel.id, Super.Lang.ANSWER_YOUR_SEED_IS_UNKNOWN);
                     break;
 
                 // Answer that my wallet seed request succeeded
@@ -1314,7 +1308,7 @@ WavesSlackRewardBot.Slack = (function() {
 
                 // Answer that my wallet address request failed
                 case Super.Event.EVENT_STORAGE_ADDRESS_REQUEST_FAILED:
-                    this._answer(event.data.channel.id, Self.ANSWER_ADDRESS_REQUEST_FAILED);
+                    this._answer(event.data.channel.id, Super.Lang.ANSWER_ADDRESS_REQUEST_FAILED);
                     break;
 
                 // Answer that my wallet address request succeeded
@@ -1324,7 +1318,7 @@ WavesSlackRewardBot.Slack = (function() {
 
                 // Answer that stat request failed
                 case Super.Event.EVENT_STORAGE_STAT_REQUEST_FAILED:
-                    this._answer(event.data.channel.id, Self.ANSWER_STAT_REQUEST_FAILED);
+                    this._answer(event.data.channel.id, Super.Lang.ANSWER_STAT_REQUEST_FAILED);
                     break;
 
             }
@@ -1414,7 +1408,7 @@ WavesSlackRewardBot.Slack = (function() {
         async _answerDefaultNodeRequestAbort(data) {
             this._answer(
                 data.channel.id,
-                Self.ANSWER_NODE_REQUEST_ABORTED,
+                Super.Lang.ANSWER_NODE_REQUEST_ABORTED,
                 data.emitent.id
             );
         }
@@ -1430,7 +1424,7 @@ WavesSlackRewardBot.Slack = (function() {
             this._answer(
                 data.channel.id,
                 (
-                    Self.ANSWER_NODE_REQUEST_REJECTED +
+                    Super.Lang.ANSWER_NODE_REQUEST_REJECTED +
                     (data.answer ? ' ' + data.answer : '')
                 ),
                 data.emitent.id
@@ -1448,7 +1442,7 @@ WavesSlackRewardBot.Slack = (function() {
             var
                 link = CONF.WAVES_API.TRANSFER_LINK.
                        replace('${transactionId}', data.transfer.id),
-                text = Self.ANSWER_TRANSFER_COMPLETED.
+                text = Super.Lang.ANSWER_TRANSFER_COMPLETED.
                        replace('${link}', link).
                        replace('${hash}', data.transfer.id);
 
@@ -1457,7 +1451,7 @@ WavesSlackRewardBot.Slack = (function() {
 
             // Tell recipient that transfer happened
             setTimeout(() => {
-                text = Self.ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT.
+                text = Super.Lang.ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT.
                        replace('${user}', Self._getTaggedUser(data.emitent.id)).
                        replace('${link}', link).
                        replace('${amount}', data.transfer.amount).
@@ -1481,7 +1475,7 @@ WavesSlackRewardBot.Slack = (function() {
          */
         async _answerMySeed(data) {
             var
-                text = Self.ANSWER_YOUR_SEED_IS.
+                text = Super.Lang.ANSWER_YOUR_SEED_IS.
                        replace('${seed}', data.emitent.seed);
 
             this._answer(data.channel.id, text);
@@ -1496,7 +1490,7 @@ WavesSlackRewardBot.Slack = (function() {
          */
         async _answerMyAddress(data) {
             var
-                text = Self.ANSWER_YOUR_ADDRESS_IS.
+                text = Super.Lang.ANSWER_YOUR_ADDRESS_IS.
                        replace('${address}', data.emitent.address);
 
             this._answer(data.channel.id, text);
@@ -1512,7 +1506,7 @@ WavesSlackRewardBot.Slack = (function() {
         async _answerMyBalance(data) {
             // No need to go further
             if (!data || !data.balance || !data.balance.count) {
-                this._answer(data.channel.id, Self.ANSWER_BALANCE_ISNT_COUNTED);
+                this._answer(data.channel.id, Super.Lang.ANSWER_BALANCE_ISNT_COUNTED);
                 return;
             }
 
@@ -1521,10 +1515,10 @@ WavesSlackRewardBot.Slack = (function() {
 
             // Choose text for message
             if (data.recipient && data.recipient.id) {
-                text = Self.ANSWER_USER_BALANCE_IS.
+                text = Super.Lang.ANSWER_USER_BALANCE_IS.
                        replace('${user}', Self._getTaggedUser(data.recipient.id));
             } else {
-                text = Self.ANSWER_YOUR_BALANCE_IS;
+                text = Super.Lang.ANSWER_YOUR_BALANCE_IS;
             }
 
             // Fill other placeholders
@@ -1556,7 +1550,7 @@ WavesSlackRewardBot.Slack = (function() {
                 alias = (
                             data.stat.alias ?
                             data.stat.alias :
-                            Self.ANSWER_STAT_REQUEST_HEAD_FOR_MONTH
+                            Super.Lang.ANSWER_STAT_REQUEST_HEAD_FOR_MONTH
                         ).toUpperCase(),
                 buffer = '',
                 list = data.stat.list,
@@ -1566,19 +1560,19 @@ WavesSlackRewardBot.Slack = (function() {
             while (++it0 < list.length) {
                 item = list[it0];
 
-                buffer += Self.ANSWER_STAT_REQUEST_ITEM.
+                buffer += Super.Lang.ANSWER_STAT_REQUEST_ITEM.
                           replace('${user}', Self._getTaggedUser(item[0])).
                           replace('${thaves}', item[1]);
 
                 // Slack message limit
                 if (buffer.length >= symbols) {
-                    buffer += Self.ANSWER_STAT_REQUEST_BREAK;
+                    buffer += Super.Lang.ANSWER_STAT_REQUEST_BREAK;
                     break;
                 }
             }
 
             alias = 'ANSWER_STAT_REQUEST_HEAD_FOR_' + alias;
-            buffer = Self.ANSWER_STAT_REQUEST_SUCCEEDED.
+            buffer = Super.Lang.ANSWER_STAT_REQUEST_SUCCEEDED.
                      replace('${head}', Self[alias]).
                      replace('${body}', buffer);
 
@@ -1608,35 +1602,22 @@ WavesSlackRewardBot.Slack = (function() {
         _parseCommandMessage(offset, event) {
             switch (Self.CMD_LIST[offset]) {
 
-                // 
+                // Check if bot's alive
                 case Self.CMD_PING:
-                    this._answer(event.channel, Self.ANSWER_PONG, event.user);
+                    this._answer(event.channel, Super.Lang.ANSWER_PONG, event.user);
                     break;
 
-                // 
+                // Get help
                 case Self.CMD_HELP:
-                    this._answer(event.channel, Self.ANSWER_HELP, event.user);
+                    this._answer(event.channel, Super.Lang.ANSWER_HELP, event.user);
                     break;
 
-                // 
-                case Self.CMD_GET_ALL:
-                    Super.Event.pub(Super.Event.EVENT_SLACK_ALL_REQUESTED, {
-                        channel : {id : event.channel},
-                        emitent : {id : event.user},
-                        all : {}
-                    });
+                // Get my slack id
+                case Self.CMD_GET_ME:
+                    this._answer(event.channel, this._me, event.user);
                     break;
 
-                // 
-                case Self.CMD_GET_TOP:
-                    Super.Event.pub(Super.Event.EVENT_SLACK_TOP_REQUESTED, {
-                        channel : {id : event.channel},
-                        emitent : {id : event.user},
-                        top : {}
-                    });
-                    break;
-
-                // 
+                // Get my wallet seed
                 case Self.CMD_GET_SEED:
                     Super.Event.pub(Super.Event.EVENT_SLACK_SEED_REQUESTED, {
                         channel : {id : event.channel},
@@ -1644,7 +1625,7 @@ WavesSlackRewardBot.Slack = (function() {
                     });
                     break;
 
-                //
+                // Get statistics
                 case Self.CMD_GET_STAT:
                     Super.Event.pub(Super.Event.EVENT_SLACK_STAT_REQUESTED, {
                         channel : {id : event.channel},
@@ -1653,7 +1634,7 @@ WavesSlackRewardBot.Slack = (function() {
                     });
                     break;
 
-                // 
+                // Get my wallet address
                 case Self.CMD_GET_ADDRESS:
                     Super.Event.pub(Super.Event.EVENT_SLACK_ADDRESS_REQUESTED, {
                         channel : {id : event.channel},
@@ -1661,7 +1642,7 @@ WavesSlackRewardBot.Slack = (function() {
                     });
                     break;
 
-                // 
+                // Get my wallet balance
                 case Self.CMD_GET_BALANCE:
                     this._parseCommandGetBalance(event);
                     break;
@@ -1669,6 +1650,12 @@ WavesSlackRewardBot.Slack = (function() {
             }
         }
 
+        /**
+         * @private
+         * @method _parseCommandGetBalance
+         *
+         * @param {Event} event
+         */
         _parseCommandGetBalance(event) {
             var
                 recipient = event.text.match(new RegExp(Self.REGEXP_USER, 'g')),
@@ -1700,7 +1687,7 @@ WavesSlackRewardBot.Slack = (function() {
 
             // No need to go further
             if (!args) {
-                this._answer(event.channel, Self.ANSWER_INCORRECT_SYNTAX, event.user);
+                this._answer(event.channel, Super.Lang.ANSWER_INCORRECT_SYNTAX, event.user);
                 return;
             }
 
@@ -1709,7 +1696,7 @@ WavesSlackRewardBot.Slack = (function() {
 
             // No need to go further
             if (!(args instanceof Array) || args.length != 2) {
-                this._answer(event.channel, Self.ANSWER_INCORRECT_SYNTAX, event.user);
+                this._answer(event.channel, Super.Lang.ANSWER_INCORRECT_SYNTAX, event.user);
                 return;
             }
 
@@ -1731,7 +1718,7 @@ WavesSlackRewardBot.Slack = (function() {
 
             // No need to go further
             if (!args) {
-                this._answer(event.channel, Self.ANSWER_INCORRECT_SYNTAX, event.user);
+                this._answer(event.channel, Super.Lang.ANSWER_INCORRECT_SYNTAX, event.user);
                 return;
             }
 
@@ -1740,7 +1727,7 @@ WavesSlackRewardBot.Slack = (function() {
 
             // No need to go further
             if (!(args instanceof Array) || args.length != 2) {
-                this._answer(event.channel, Self.ANSWER_INCORRECT_SYNTAX, event.user);
+                this._answer(event.channel, Super.Lang.ANSWER_INCORRECT_SYNTAX, event.user);
                 return;
             }
 
@@ -1759,7 +1746,7 @@ WavesSlackRewardBot.Slack = (function() {
             if (!event.item_user) {
                 // Don't know who's the recipient
                 return;
-            } else if (Self.REWARDED_REACTIONS.indexOf(event.reaction) === -1) {
+            } else if (CONF.SLACK_API.REWARDED_REACTIONS.indexOf(event.reaction) === -1) {
                 // Filter unholded reactions
                 return;
             }
@@ -1794,15 +1781,15 @@ WavesSlackRewardBot.Slack = (function() {
             // No need to go further
             if (this._isMe(recipient)) {
                 // Don't transfer to bot
-                this._answer(channel, Self.ANSWER_NOT_TO_MYSELF, emitent);
+                this._answer(channel, Super.Lang.ANSWER_NOT_TO_MYSELF, emitent);
                 return;
             } else if (this._isSame(emitent, recipient)) {
                 // Don't transfer to yourself
-                this._answer(channel, Self.ANSWER_NOT_TO_YOURSELF, emitent);
+                this._answer(channel, Super.Lang.ANSWER_NOT_TO_YOURSELF, emitent);
                 return;
             } else if (isNaN(amount)) {
                 // Not a number parsed as amount
-                this._answer(channel, Self.ANSWER_INCORRECT_SYNTAX, emitent);
+                this._answer(channel, Super.Lang.ANSWER_INCORRECT_SYNTAX, emitent);
                 return;
             }
 
@@ -1816,7 +1803,7 @@ WavesSlackRewardBot.Slack = (function() {
 
             // Send a success answer
             if (answer !== false) {
-                this._answer(channel, Self.ANSWER_THANK_YOU, emitent);
+                this._answer(channel, Super.Lang.ANSWER_THANK_YOU, emitent);
             }
         }
 

@@ -21,7 +21,8 @@
         "SYMBOLS_LIMIT" : 3900,
         "MESSAGE_TIMEOUT" : 1000,
         "TOKEN" : "xoxb-{botToken}",
-        "WORKSPACE" : "xoxb-{workspaceToken}"
+        "WORKSPACE" : "xoxb-{workspaceToken}",
+        "REWARDED_REACTIONS" : ["+1", "clap", "clapping", "fire", "heart", "heavy_plus_sign"]
       },
       "CURRENCY" : {
         "ONE" : "ThanksCoin",
