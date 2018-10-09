@@ -24,11 +24,6 @@
         "WORKSPACE" : "xoxb-{workspaceToken}",
         "REWARDED_REACTIONS" : ["+1", "clap", "clapping", "fire", "heart", "heavy_plus_sign"]
       },
-      "CURRENCY" : {
-        "ONE" : "ThanksCoin",
-        "TWO" : "ThanksCoins",
-        "ALL" : "ThanksCoins"
-      },
       "WAVES_API" : {
         "BALANCE_URL" : "https://nodes.wavesplatform.com/assets/balance/{address}/{assetId}",
         "BALANCES_URL" : "http://nodes.wavesnodes.com/assets/{assetId}/distribution",

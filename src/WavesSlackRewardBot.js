@@ -233,6 +233,30 @@ WavesSlackRewardBot.Lang = (function() {
 
         /**
          * @static
+         * @const {string} CURRENCY_ONE
+         */
+        static get CURRENCY_ONE() {
+            return 'ThanksCoin';
+        }
+
+        /**
+         * @static
+         * @const {string} CURRENCY_TWO
+         */
+        static get CURRENCY_ONE() {
+            return 'ThanksCoins';
+        }
+
+        /**
+         * @static
+         * @const {string} CURRENCY_ALL
+         */
+        static get CURRENCY_ALL() {
+            return 'ThanksCoins';
+        }
+
+        /**
+         * @static
          * @const {Array} CURRENCY_ALIASES
          */
         static get CURRENCY_ALIASES() {
@@ -1457,9 +1481,9 @@ WavesSlackRewardBot.Slack = (function() {
                        replace('${amount}', data.transfer.amount).
                        replace('${pluralized}', Super.pluralize(
                            data.transfer.amount,
-                           CONF.CURRENCY.ONE,
-                           CONF.CURRENCY.TWO,
-                           CONF.CURRENCY.ALL
+                           Super.Lang.CURRENCY_ONE,
+                           Super.Lang.CURRENCY_TWO,
+                           Super.Lang.CURRENCY_ALL
                        ));
 
                 this._answer(data.channel.id, text, data.recipient.id, true);
@@ -1526,9 +1550,9 @@ WavesSlackRewardBot.Slack = (function() {
                    replace('${count}', data.balance.count).
                    replace('${pluralized}', Super.pluralize(
                        data.balance.count,
-                       CONF.CURRENCY.ONE,
-                       CONF.CURRENCY.TWO,
-                       CONF.CURRENCY.ALL
+                       Super.Lang.CURRENCY_ONE,
+                       Super.Lang.CURRENCY_TWO,
+                       Super.Lang.CURRENCY_ALL
                    ));
 
             // Send
