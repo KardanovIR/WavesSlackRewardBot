@@ -8,7 +8,7 @@
  * @see https://www.npmjs.com/package/forever
  * @see https://inch-ci.org/github/foreverjs/forever
  *
- * $ forever start /home/user/forever/development.json
+ * $ forever start ./forever/development.json --minUptime 1000 --spinSleepTime 61000
  * $ forever stop BillyBot
  */
 
@@ -555,6 +555,7 @@ WavesSlackRewardBot.Node = (function() {
             // Modules events
             Super.Event.sub(Super.Event.EVENT_STORAGE_TRANSFER_WAVES, this._route);
             Super.Event.sub(Super.Event.EVENT_STORAGE_REQUEST_BALANCE, this._route);
+            Super.Event.sub(Super.Event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED, this._route);
         }
 
         /**
@@ -581,7 +582,68 @@ WavesSlackRewardBot.Node = (function() {
                     this._checkBalance(event.data);
                     break;
 
+                //
+                case Super.Event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED:
+                    this._checkBalances(event.data);
+                    break;
+
             }
+        }
+
+        /**
+         * @private
+         * @method _transferWaves
+         *
+         * @param {object} data
+         *
+         * @fires Super.Event.EVENT_NODE_REQUEST_REJECTED
+         * @fires Super.Event.EVENT_NODE_REQUEST_ABORTED
+         * @fires Super.Event.EVENT_NODE_REQUEST_SUCCEEDED
+         */
+        _checkBalances(data) {
+            var
+                url = CONF.WAVES_API.BALANCES_URL.
+                      replace('${assetId}', CONF.WAVES_API.ASSET_ID);
+
+            // Send balance request to Waves api
+            Restler.get(url).
+            on('fail', (res, xhr) => {
+                data.ok = false;
+                data.answer = res;
+                Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_REJECTED, data)
+            }).
+            on('error', (exc, xhr) => {
+                data.ok = false;
+                data.answer = exc;
+                Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_ABORTED, data);
+            }).
+            on('timeout', (res, xhr) => {
+                data.ok = false;
+                data.answer = res;
+                Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_ABORTED, data);
+            }).
+            on('success', (res, xhr) => {
+                if (data.stat.alias == 'balances') {
+                    // 
+                    data.stat.list = data.stat.list.map((row) => {
+                        row[1] = res[row[3]];
+                        return row;
+                    });
+
+                    // Resort array due to amounts from Nodes
+                    data.stat.list.sort((a, b) => {
+                        if (a[1] < b[1]) {
+                            return 1;
+                        } else if (a[1] > b[1]) {
+                            return -1;
+                        }
+
+                        return 0;
+                    })
+                }
+
+                Super.Event.pub(Super.Event.EVENT_NODE_REQUEST_SUCCEEDED, data);
+            });
         }
 
         /**
@@ -827,6 +889,12 @@ WavesSlackRewardBot.Slack = (function() {
          */
         static get REWARDED_REACTIONS() {
             return [
+                '+1',
+                'clap',
+                'clapping',
+                'fire',
+                'heart',
+                'heavy_plus_sign',
                 'waves_new_logo',
                 'dolphin',
                 'billy',
@@ -857,7 +925,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_PONG
          */
         static get ANSWER_PONG() {
-            return 'Wut?';
+            return ':whale:';
         }
 
         /**
@@ -865,7 +933,26 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_HELP
          */
         static get ANSWER_HELP() {
-            return 'Available commands:\n\n— ' + Self.CMD_FULL_LIST.join(',\n— ');
+            var
+                emojis = ':' + Self.REWARDED_REACTIONS.join(': :') + ':';
+
+            return '' +
+                '*Привет!*\n\n' +
+                'Меня зовут Билли и я дельфин. Я могу помогать отправлять спасибо токены твоим коллегам. Каждый месяц на кошелек, созданный для каждого сотрудника компании, перечисляется 100 монет. Вы можете раздавать их своим коллегам.\n\n' +
+                '*Это можно сделать тремя способами:*\n' +
+                '*1.* Напиши в любом канале, куда меня пригласили, команду вида `@Billy 2 спасибо @sasha` и я отправлю 2 монеты указанному пользователю;\n' +
+                '*2.* Добавь эмодзи ' + emojis + ' к сообщению пользователя и я отправлю ему 1 монету;\n' +
+                '*3.* Напиши мне в приват `10 спасибо @sasha` и я отправлю 10 монет указанному пользователю.\n\n' +
+                '*Также в привате доступны следующие команды:*\n' +
+                '*•* `address` — вовзращает адрес вашего кошелька;\n' +
+                '*•* `balance` — возращает ваш баланс;\n' +
+                '*•* `balance @sasha` — возращает баланс указанного пользователя;\n' +
+                '*•* `help` — список доступных команд;\n' +
+                '*•* `ping` — проверка жив ли бот;\n' +
+                '*•* `seed` — сид фраза вашего кошелька;\n' +
+                '*•* `stat month` — статистика по полученным токенам за месяц для всех сотрудников;\n' +
+                '*•* `stat balances` — накопленный итог всех транзакций для всех сотрудников.' +
+                '';
         }
 
         /**
@@ -899,7 +986,7 @@ WavesSlackRewardBot.Slack = (function() {
          * @const {string} ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT
          */
         static get ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT() {
-            return 'User ${user} transfered you <${link}|${amount} ${pluralized}>';
+            return 'User ${user} transferred to you <${link}|${amount} ${pluralized}>';
         }
 
         /**
@@ -1205,6 +1292,8 @@ WavesSlackRewardBot.Slack = (function() {
                 case Super.Event.EVENT_NODE_REQUEST_SUCCEEDED:
                     if (event.data.balance) {
                         this._answerMyBalance(event.data);
+                    } else if (event.data.stat) {
+                        this._answerStat(event.data);
                     }
                     break;
 
@@ -1236,11 +1325,6 @@ WavesSlackRewardBot.Slack = (function() {
                 // Answer that stat request failed
                 case Super.Event.EVENT_STORAGE_STAT_REQUEST_FAILED:
                     this._answer(event.data.channel.id, Self.ANSWER_STAT_REQUEST_FAILED);
-                    break;
-
-                // Answer that stat request succeeded
-                case Super.Event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED:
-                    this._answerStat(event.data)
                     break;
 
             }
@@ -1827,6 +1911,25 @@ WavesSlackRewardBot.Storage = (function() {
         static get SQL_GET_ALL_RECIPIENTS() {
             return `
                 SELECT
+                    ${CONF.DB.TRANSACTIONS_TABLE_NAME}.recipient_id,
+                    sum(${CONF.DB.TRANSACTIONS_TABLE_NAME}.transaction_amount) AS transaction_amount,
+                    max(${CONF.DB.TRANSACTIONS_TABLE_NAME}.transaction_date) AS transaction_date,
+                    max(${CONF.DB.WALLETS_TABLE_NAME}.wallet_address) AS wallet_address
+                FROM
+                    ${CONF.DB.TRANSACTIONS_TABLE_NAME}
+                LEFT JOIN 
+                    ${CONF.DB.WALLETS_TABLE_NAME}
+                ON
+                    ${CONF.DB.WALLETS_TABLE_NAME}.slack_id = ${CONF.DB.TRANSACTIONS_TABLE_NAME}.recipient_id
+                GROUP BY
+                    ${CONF.DB.TRANSACTIONS_TABLE_NAME}.recipient_id
+                ORDER BY
+                    transaction_amount DESC,
+                    transaction_date DESC
+            `;
+/*
+            return `
+                SELECT
                     recipient_id,
                     sum(transaction_amount) AS transaction_amount,
                     max(transaction_date) AS transaction_date
@@ -1838,6 +1941,7 @@ WavesSlackRewardBot.Storage = (function() {
                     transaction_amount DESC,
                     transaction_date DESC
             `;
+*/
         }
 
         /**
@@ -1845,6 +1949,27 @@ WavesSlackRewardBot.Storage = (function() {
          * @const {string} SQL_GET_TOP_RECIPIENTS
          */
         static get SQL_GET_TOP_RECIPIENTS() {
+            return `
+                SELECT
+                    ${CONF.DB.TRANSACTIONS_TABLE_NAME}.recipient_id,
+                    sum(${CONF.DB.TRANSACTIONS_TABLE_NAME}.transaction_amount) AS transaction_amount,
+                    max(${CONF.DB.TRANSACTIONS_TABLE_NAME}.transaction_date) AS transaction_date,
+                    max(${CONF.DB.WALLETS_TABLE_NAME}.wallet_address) AS wallet_address
+                FROM
+                    ${CONF.DB.TRANSACTIONS_TABLE_NAME}
+                LEFT JOIN 
+                    ${CONF.DB.WALLETS_TABLE_NAME}
+                ON
+                    ${CONF.DB.WALLETS_TABLE_NAME}.slack_id = ${CONF.DB.TRANSACTIONS_TABLE_NAME}.recipient_id
+                WHERE
+                    transaction_date >= $1
+                GROUP BY
+                    ${CONF.DB.TRANSACTIONS_TABLE_NAME}.recipient_id
+                ORDER BY
+                    transaction_amount DESC,
+                    transaction_date DESC
+            `;
+/*
             return `
                 SELECT
                     recipient_id,
@@ -1860,6 +1985,7 @@ WavesSlackRewardBot.Storage = (function() {
                     transaction_amount DESC,
                     transaction_date DESC
             `;
+*/
         }
 
         /**
@@ -2013,7 +2139,7 @@ WavesSlackRewardBot.Storage = (function() {
 
                 // Montly banalce
                 default:
-                    data.alias = 'month';
+                    data.stat.alias = 'month';
                     list = await this._getStatMonth(data);
                     break;
             }
