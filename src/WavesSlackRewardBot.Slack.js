@@ -633,7 +633,7 @@ class Self {
             return;
         }
 
-        // 
+        // Answer
         this._answer(event.channel, Self._getTaggedUser(who), event.user)
     }
 

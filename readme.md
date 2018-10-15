@@ -21,7 +21,8 @@ Slack bot working with custom crypto tokens based with the Wavesplatform.API.
     "MESSAGE_TIMEOUT" : 1000,
     "TOKEN" : "xoxb-{botToken}",
     "WORKSPACE" : "xoxb-{workspaceToken}",
-    "REWARDED_REACTIONS" : ["+1", "clap", "clapping", "fire", "heart", "heavy_plus_sign"]
+    "REWARDED_REACTIONS" : ["+1", "clap", "clapping", "fire", "heart", "heavy_plus_sign"],
+    "ADMINS_LIST" : ["{SLACK_ID_1}", "{SLACK_ID_2}"]
   },
   "WAVES_API" : {
     "BALANCE_URL" : "https://nodes.wavesplatform.com/assets/balance/{address}/{assetId}",
