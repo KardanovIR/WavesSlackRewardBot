@@ -77,6 +77,7 @@ class Self {
         // Modules events
         this._event.sub(this._event.EVENT_STORAGE_TRANSFER_WAVES, this._route);
         this._event.sub(this._event.EVENT_STORAGE_REQUEST_BALANCE, this._route);
+        this._event.sub(this._event.EVENT_STORAGE_CREATE_NEW_WALLETS, this._route);
         this._event.sub(this._event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED, this._route);
     }
 
@@ -104,12 +105,42 @@ class Self {
                 this._checkBalance(event.data);
                 break;
 
+            // 
+            case this._event.EVENT_STORAGE_CREATE_NEW_WALLETS:
+                this._createNewWallets(event.data);
+                break;
+
             //
             case this._event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED:
                 this._checkBalances(event.data);
                 break;
 
         }
+    }
+
+    /**
+     * @private
+     * @method _createNewWallets
+     *
+     * @param {object} data
+     */
+    _createNewWallets(data) {
+        var
+            seed = null;
+
+        // Get seed for each
+        data.update.users = data.update.users.map((uid) => {
+            seed = this._module.Seed.create();
+
+            return {
+                slack_id : uid,
+                wallet_phrase : seed.phrase,
+                wallet_address : seed.address
+            }
+        });
+
+        // 
+        this._event.pub(this._event.EVENT_NODE_WALLETS_CREATED, data);
     }
 
     /**

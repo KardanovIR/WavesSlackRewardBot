@@ -52,6 +52,14 @@ class Self {
 
     /**
      * @static
+     * @const {string} EVENT_NODE_WALLETS_CREATED
+     */
+    get EVENT_NODE_WALLETS_CREATED() {
+        return 'nodeWalletsCreated';
+    }
+
+    /**
+     * @static
      * @const {string} EVENT_SLACK_CONNECTED
      */
     get EVENT_SLACK_CONNECTED() {
@@ -120,6 +128,14 @@ class Self {
      */
     get EVENT_SLACK_ADDRESS_REQUESTED() {
         return 'slackAddressRequested';
+    }
+
+    /**
+     * @static
+     * @const {string} EVENT_SLACK_UPDATE_WALLETS_REQUESTED
+     */
+    get EVENT_SLACK_UPDATE_WALLETS_REQUESTED() {
+        return 'slackWalletsUpdateRequested';
     }
 
     /**
@@ -248,6 +264,22 @@ class Self {
      */
     get EVENT_STORAGE_STAT_REQUEST_SUCCEEDED() {
         return 'storageBalanceRequestSucceeded';
+    }
+
+    /**
+     * @static
+     * @const {string} EVENT_STORAGE_CREATE_NEW_WALLETS
+     */
+    get EVENT_STORAGE_CREATE_NEW_WALLETS() {
+        return 'storageCreateNewWallets';
+    }
+
+    /**
+     * @static
+     * @const {string} EVENT_STORAGE_CREATED_NEW_WALLETS
+     */
+    get EVENT_STORAGE_CREATED_NEW_WALLETS() {
+        return 'storageCreatedNewWallets';
     }
 
     /**

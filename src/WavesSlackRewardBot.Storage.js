@@ -129,6 +129,35 @@ class Self {
         `;
     }
 
+    static get SQL_CREATE_USER() {
+        return `
+            INSERT INTO ${CONF.DB.WALLETS_TABLE_NAME} (
+                slack_id,
+                wallet_phrase,
+                wallet_address,
+                wallet_created
+            ) VALUES(
+                $1,
+                $2,
+                $3,
+                $4
+            )
+        `;
+    }
+
+    /**
+     * @static
+     * @const {string} SQL_GET_ALL_USERS_IDS
+     */
+    static get SQL_GET_ALL_USERS_IDS() {
+        return `
+            SELECT
+                slack_id
+            FROM
+                ${CONF.DB.WALLETS_TABLE_NAME}
+        `;
+    }
+
     /**
      * @constructor
      *
@@ -167,6 +196,8 @@ class Self {
         this._event.sub(this._event.EVENT_SLACK_STAT_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_SLACK_ADDRESS_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_SLACK_BALANCE_REQUESTED, this._route);
+        this._event.sub(this._event.EVENT_SLACK_UPDATE_WALLETS_REQUESTED, this._route);
+        this._event.sub(this._event.EVENT_NODE_WALLETS_CREATED, this._route);
         this._event.sub(this._event.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
     }
 
@@ -219,11 +250,21 @@ class Self {
                 this._getMyBalance(event.data);
                 break;
 
+            // 
+            case this._event.EVENT_NODE_WALLETS_CREATED:
+                this._createNewUsers(event.data);
+                break;
+
             // Save transaction info
             case this._event.EVENT_NODE_REQUEST_SUCCEEDED:
                 if (event.data.transfer) {
                     this._addTransaction(event.data);
                 }
+                break;
+
+            //
+            case this._event.EVENT_SLACK_UPDATE_WALLETS_REQUESTED:
+                this._getUsersWithoutWallets(event.data);
                 break;
 
         }
@@ -518,6 +559,76 @@ class Self {
         }
 
         this._event.pub(this._event.EVENT_STORAGE_TRANSFER_WAVES, data);
+    }
+
+    /**
+     * @async
+     * @private
+     * @method _createNewUsers
+     *
+     * @param {object} data
+     *
+     * @fires this._event.EVENT_STORAGE_CREATED_NEW_WALLETS
+     */
+    async _createNewUsers(data) {
+        var
+            created = new Date();
+
+        // Send requests
+        data.update.users.forEach(async (item) => {
+            this._request(
+                Self.SQL_CREATE_USER,
+                [
+                    item.slack_id,
+                    item.wallet_phrase,
+                    item.wallet_address,
+                    created
+                ],
+                'array'
+            );
+        });
+
+        // 
+        this._event.pub(this._event.EVENT_STORAGE_CREATED_NEW_WALLETS, data);
+    }
+
+    /**
+     * @async
+     * @private
+     * @method _getUsersWithoutWallets
+     *
+     * @param {object} data
+     *
+     * @fires this._event.EVENT_STORAGE_CREATE_NEW_WALLETS
+     */
+    async _getUsersWithoutWallets(data) {
+        var
+            users = await this._request(
+                        Self.SQL_GET_ALL_USERS_IDS,
+                        [],
+                        'array'
+                    ).catch(this._error);
+
+        // No need to go further
+        if (!users || !users.rowCount) {
+            return;
+        }
+
+        // Get users ids list from rows
+        users = users.rows.map((row) => {
+            return row[0];
+        });
+
+        // Filter users with wallets
+        data.update.users = data.update.users.filter((uid) => {
+            if (users.indexOf(uid) === -1) {
+                return true;
+            }
+
+            return false;
+        });
+
+        this._event.pub(this._event.EVENT_STORAGE_CREATE_NEW_WALLETS, data);
     }
 
     /**

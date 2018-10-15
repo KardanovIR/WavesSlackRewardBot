@@ -116,7 +116,6 @@ class Self {
 
 }
 
-
 /**
  * @requires ./WavesSlackRewardBot.Lang.js
  * @requires ./WavesSlackRewardBot.Node.js

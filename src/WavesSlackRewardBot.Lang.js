@@ -337,12 +337,52 @@ class Self {
 
     /**
      * @static
+     * @const {string} ANSWER_ADMIN_ACCESS_REQUIRED
+     */
+    static get ANSWER_ADMIN_ACCESS_REQUIRED() {
+        return 'Sorry this action requires admin permission which you don\'t have.'
+    }
+
+    /**
+     * @static
+     * @const {string} WALLET_ONE
+     */
+    static get WALLET_ONE() {
+        return 'wallet';
+    }
+
+    /**
+     * @static
+     * @const {string} WALLET_TWO
+     */
+    static get WALLET_TWO() {
+        return 'wallets';
+    }
+
+    /**
+     * @static
+     * @const {string} WALLET_ALL
+     */
+    static get WALLET_ALL() {
+        return 'wallets';
+    }
+
+    /**
+     * @static
+     * @const {string} ANSWER_NEW_WALLETS_CREATED
+     */
+    static get ANSWER_NEW_WALLETS_CREATED() {
+        return '*${count}* ${pluralized} created';
+    }
+
+    /**
+     * @static
      * @method pluralize
      *
-     * @param   {number} num
-     * @param   {string|Array} one
-     * @param   {string=} two
-     * @param   {string=} all
+     * @param {number} num
+     * @param {string|Array} one
+     * @param {string=} two
+     * @param {string=} all
      *
      * @returns {string}
      */

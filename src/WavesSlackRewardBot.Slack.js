@@ -40,10 +40,18 @@ class Self {
 
     /**
      * @static
-     * @const {string} CMD_GET_ME
+     * @const {string} CMD_WHOAMI
      */
-    static get CMD_GET_ME() {
+    static get CMD_WHOAMI() {
         return 'whoami';
+    }
+
+    /**
+     * @static
+     * @const {string} CMD_WHOIS
+     */
+    static get CMD_WHOIS() {
+        return 'whois';
     }
 
     /**
@@ -80,17 +88,27 @@ class Self {
 
     /**
      * @static
+     * @const {string} CMD_UPDATE
+     */
+    static get CMD_UPDATE() {
+        return 'update';
+    }
+
+    /**
+     * @static
      * @const {Array} CMD_LIST
      */
     static get CMD_LIST() {
         return [
             Self.CMD_HELP,
             Self.CMD_PING,
-            Self.CMD_GET_ME,
+            Self.CMD_WHOIS,
+            Self.CMD_WHOAMI,
             Self.CMD_GET_SEED,
             Self.CMD_GET_STAT,
             Self.CMD_GET_ADDRESS,
-            Self.CMD_GET_BALANCE
+            Self.CMD_GET_BALANCE,
+            Self.CMD_UPDATE
         ];
     }
 
@@ -187,6 +205,18 @@ class Self {
 
     /**
      * @private
+     * @method _isAdmin
+     *
+     * @param {string} uid
+     *
+     * @returns {boolean}
+     */
+    _isAdmin(uid) {
+        return CONF.SLACK_API.ADMINS_LIST.indexOf(uid) > -1;
+    }
+
+    /**
+     * @private
      * @method _isIM
      *
      * @param {string} id
@@ -228,6 +258,7 @@ class Self {
         this._event.sub(this._event.EVENT_NODE_REQUEST_ABORTED, this._route);
         this._event.sub(this._event.EVENT_NODE_REQUEST_REJECTED, this._route);
         this._event.sub(this._event.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
+        this._event.sub(this._event.EVENT_STORAGE_CREATED_NEW_WALLETS, this._route);
         this._event.sub(this._event.EVENT_STORAGE_TRANSFER_COMPLETED, this._route);
         this._event.sub(this._event.EVENT_STORAGE_SEED_REQUEST_FAILED, this._route);
         this._event.sub(this._event.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED, this._route);
@@ -294,6 +325,11 @@ class Self {
             // Answer that stat request failed
             case this._event.EVENT_STORAGE_STAT_REQUEST_FAILED:
                 this._answer(event.data.channel.id, this._lang.ANSWER_STAT_REQUEST_FAILED);
+                break;
+
+            // 
+            case this._event.EVENT_STORAGE_CREATED_NEW_WALLETS:
+                this._answerNewWalletsCreated(event.data);
                 break;
 
         }
@@ -371,6 +407,31 @@ class Self {
 
         await this._web.chat.postMessage({channel, text}).
         catch(this._error);
+    }
+
+    /**
+     * @private
+     * @method _answerNewWalletsCreated
+     *
+     * @param {object} data
+     */
+    _answerNewWalletsCreated(data) {
+        var
+            created = data.update.users.length,
+            text = this._lang.ANSWER_NEW_WALLETS_CREATED.
+                   replace('${count}', created).
+                   replace('${pluralized}', this._lang.pluralize(
+                       created,
+                       this._lang.WALLET_ONE,
+                       this._lang.WALLET_TWO,
+                       this._lang.WALLET_ALL
+                   ));
+
+        this._answer(
+            data.channel.id,
+            text,
+            data.emitent.id
+        );
     }
 
     /**
@@ -558,6 +619,27 @@ class Self {
     /**
      * @async
      * @private
+     * @method _answerWhoIs
+     *
+     * @param {Event} event
+     */
+    async _answerWhoIs(event) {
+        var
+            who = event.text.split(/\s+/)[1];
+
+        // No need to go further
+        if (!this._isAdmin(event.user)) {
+            this._answer(data.channel.id, this._lang.ANSWER_ADMIN_ACCESS_REQUIRED);
+            return;
+        }
+
+        // 
+        this._answer(event.channel, Self._getTaggedUser(who), event.user)
+    }
+
+    /**
+     * @async
+     * @private
      * @method _getConversationInfo
      *
      * @param {string} id
@@ -588,8 +670,13 @@ class Self {
                 break;
 
             // Get my slack id
-            case Self.CMD_GET_ME:
-                this._answer(event.channel, this._me, event.user);
+            case Self.CMD_WHOAMI:
+                this._answer(event.channel, event.user, event.user);
+                break;
+
+            // Get user slack info
+            case Self.CMD_WHOIS:
+                this._answerWhoIs(event);
                 break;
 
             // Get my wallet seed
@@ -622,7 +709,62 @@ class Self {
                 this._parseCommandGetBalance(event);
                 break;
 
+            case Self.CMD_UPDATE:
+                this._parseCommandUpdate(event);
+                break;
+
         }
+    }
+
+    /**
+     * @private
+     * @method _parseCommandUpdate
+     *
+     * @param {Event} event
+     */
+    async _parseCommandUpdate(event) {
+        var
+            what = event.text.split(/\s+/),
+            data = null;
+
+        // No need to go further
+        if (!this._isAdmin(event.user)) {
+            this._answer(event.channel, this._lang.ANSWER_ADMIN_ACCESS_REQUIRED, event.user);
+            return;
+        }
+
+        // Compile data object
+        what = what.length > 1 ? what[1] : 'wallets';
+        data = {
+                   channel : {id : event.channel},
+                   emitent : {id : event.user},
+                   update : {what : what}
+               };
+
+        switch (what) {
+
+            // Update wallets list
+            case 'wallets':
+                this._parseCommandUpdateWallets(data);
+                break;
+
+        }
+    }
+
+    /**
+     * @async
+     * @private
+     * @method _parseCommandUpdate
+     *
+     * @param {Event} event
+     */
+    async _parseCommandUpdateWallets(data) {
+        var
+            raw = await this._web.users.list().catch(this._error);
+
+        data.update.users = raw && raw.members ? raw.members.map((user) => {return user.id}) : [];
+
+        this._event.pub(this._event.EVENT_SLACK_UPDATE_WALLETS_REQUESTED, data);
     }
 
     /**
