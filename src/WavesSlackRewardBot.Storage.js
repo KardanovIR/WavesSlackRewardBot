@@ -495,8 +495,8 @@ class Self {
      *
      * @param {object} data
      *
-     * @fires this._event.EVENT_STORAGE_SEED_REQUEST_FAILED
-     * @fires this._event.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED
+     * @fires this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_FAILED
+     * @fires this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_SUCCEEDED
      */
     async _getAllAddresses(data) {
         var
