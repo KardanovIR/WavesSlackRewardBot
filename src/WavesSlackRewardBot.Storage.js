@@ -104,6 +104,33 @@ class Self {
 
     /**
      * @static
+     * @const {string} SQL_GET_TOP_GENEROSITY
+     */
+    static get SQL_GET_TOP_GENEROSITY() {
+        return `
+            SELECT
+                ${CONF.DB.TRANSACTIONS_TABLE_NAME}.emitent_id,
+                sum(${CONF.DB.TRANSACTIONS_TABLE_NAME}.transaction_amount) AS transaction_amount,
+                max(${CONF.DB.TRANSACTIONS_TABLE_NAME}.transaction_date) AS transaction_date,
+                max(${CONF.DB.WALLETS_TABLE_NAME}.wallet_address) AS wallet_address
+            FROM
+                ${CONF.DB.TRANSACTIONS_TABLE_NAME}
+            LEFT JOIN 
+                ${CONF.DB.WALLETS_TABLE_NAME}
+            ON
+                ${CONF.DB.WALLETS_TABLE_NAME}.slack_id = ${CONF.DB.TRANSACTIONS_TABLE_NAME}.emitent_id
+            WHERE
+                transaction_date >= $1
+            GROUP BY
+                ${CONF.DB.TRANSACTIONS_TABLE_NAME}.emitent_id
+            ORDER BY
+                transaction_amount DESC,
+                transaction_date DESC
+        `;
+    }
+
+    /**
+     * @static
      * @const {string} SQL_GET_TOP_RECIPIENTS
      */
     static get SQL_GET_TOP_RECIPIENTS() {
@@ -196,6 +223,7 @@ class Self {
         this._event.sub(this._event.EVENT_SLACK_STAT_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_SLACK_ADDRESS_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_SLACK_BALANCE_REQUESTED, this._route);
+        this._event.sub(this._event.EVENT_SLACK_ADDRESSES_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_SLACK_UPDATE_WALLETS_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_NODE_WALLETS_CREATED, this._route);
         this._event.sub(this._event.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
@@ -267,6 +295,11 @@ class Self {
                 this._getUsersWithoutWallets(event.data);
                 break;
 
+            //
+            case this._event.EVENT_SLACK_ADDRESSES_REQUESTED:
+                this._getAllAddresses(event.data);
+                break;
+
         }
     }
 
@@ -309,7 +342,7 @@ class Self {
     /**
      * @async
      * @private
-     * @method _getStatTop
+     * @method _getStat
      *
      * @param {object} data
      *
@@ -322,12 +355,17 @@ class Self {
 
         switch (data.stat.alias) {
 
+            // Top generous
+            case 'generosity':
+                list = await this._getStatGenerosity(data);
+                break;
+
             // Total balances
             case 'balances':
                 list = await this._getStatBalances(data);
                 break;
 
-            // Montly banalce
+            // Montly balance
             default:
                 data.stat.alias = 'month';
                 list = await this._getStatMonth(data);
@@ -343,6 +381,41 @@ class Self {
         data.stat.list = list;
 
         this._event.pub(this._event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED, data);
+    }
+
+    /**
+     * @async
+     * @private
+     * @method _getStatGenerosity
+     *
+     * @param {object} data
+     *
+     * @returns {object}
+     */
+    async _getStatGenerosity(data) {
+        var
+            date = new Date(),
+            stat = null;
+
+        // Move date to the very beginning of current month
+        date.setDate(1);
+        date.setHours(0);
+        date.setMinutes(0);
+        date.setSeconds(0);
+
+        // Make request
+        stat = await this._request(
+                   Self.SQL_GET_TOP_GENEROSITY,
+                   [date],
+                   'array'
+               ).catch(this._error);
+
+        // No need to go further
+        if (!stat || !stat.rowCount) {
+            return null;
+        }
+
+        return stat.rows;
     }
 
     /**
@@ -404,6 +477,53 @@ class Self {
         }
 
         return stat.rows;
+    }
+
+    static get SQL_GET_ALL_WALLETS_ADDRESSES() {
+        return `
+            SELECT
+                wallet_address
+            FROM
+                ${CONF.DB.WALLETS_TABLE_NAME}
+        `;
+    }
+
+    /**
+     * @async
+     * @private
+     * @method _getAllAddresses
+     *
+     * @param {object} data
+     *
+     * @fires this._event.EVENT_STORAGE_SEED_REQUEST_FAILED
+     * @fires this._event.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED
+     */
+    async _getAllAddresses(data) {
+        var
+            wallets = await this._request(
+                          Self.SQL_GET_ALL_WALLETS_ADDRESSES,
+                          [],
+                          'array'
+                      ).catch(this._error);
+
+        // No need to go further
+        if (!wallets || !wallets.rowCount) {
+            this._event.pub(this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_FAILED, data);
+            return;
+        }
+
+        // 
+        wallets = wallets.rows.map((item) => {
+            return item[0];
+        });
+
+        // 
+        data.addresses = {
+            list : wallets
+        };
+
+        //
+        this._event.pub(this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_SUCCEEDED, data);
     }
 
     /**

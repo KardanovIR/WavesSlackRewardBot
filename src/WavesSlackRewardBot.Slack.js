@@ -16,6 +16,13 @@ const CONF = require('../conf.json');
 const {RTMClient, WebClient} = require('@slack/client');
 
 /**
+ * @const {restler} Restler
+ *
+ * @see https://github.com/danwrong/restler
+ */
+const Restler = require('restler');
+
+/**
  * @class WavesSlackRewardBot.Slack
  *
  * @see https://github.com/slackapi/node-slack-sdk
@@ -96,6 +103,14 @@ class Self {
 
     /**
      * @static
+     * @const {string} CMD_GET_ADDRESSES
+     */
+    static get CMD_GET_ADDRESSES() {
+        return 'addresses';
+    }
+
+    /**
+     * @static
      * @const {Array} CMD_LIST
      */
     static get CMD_LIST() {
@@ -108,6 +123,7 @@ class Self {
             Self.CMD_GET_STAT,
             Self.CMD_GET_ADDRESS,
             Self.CMD_GET_BALANCE,
+            Self.CMD_GET_ADDRESSES,
             Self.CMD_UPDATE
         ];
     }
@@ -266,6 +282,8 @@ class Self {
         this._event.sub(this._event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED, this._route);
         this._event.sub(this._event.EVENT_STORAGE_ADDRESS_REQUEST_FAILED, this._route);
         this._event.sub(this._event.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED, this._route);
+        this._event.sub(this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_FAILED, this._route);
+        this._event.sub(this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_SUCCEEDED, this._route);
     }
 
     /**
@@ -327,9 +345,19 @@ class Self {
                 this._answer(event.data.channel.id, this._lang.ANSWER_STAT_REQUEST_FAILED);
                 break;
 
-            // 
+            // Answer with the number of created wallets
             case this._event.EVENT_STORAGE_CREATED_NEW_WALLETS:
                 this._answerNewWalletsCreated(event.data);
+                break;
+
+            // Answer with addressses list loading error
+            case this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_FAILED:
+                this._answer(event.data.channel.id, this._lang.ADDRESSES_LIST_REQUEST_FAILED);
+                break;
+
+            // Upload addresses list as a file
+            case this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_SUCCEEDED:
+                this._uploadAddressesList(event.data);
                 break;
 
         }
@@ -638,6 +666,32 @@ class Self {
     }
 
     /**
+     * @private
+     * @method _uploadAddressesList
+     *
+     * @param {object} data
+     */
+    _uploadAddressesList(data) {
+        // No need to go further
+        if (!data || !data.addresses || !data.addresses.list || !data.addresses.list.length) {
+            this._answer(data.channel.id, this._lang.ADDRESSES_LIST_REQUEST_NOTHING);
+            return;
+        }
+
+        // Send list via file api
+        Restler.post(CONF.SLACK_API.FILES_UPLOAD_URL, {
+            multipart : true,
+            data : {
+                token : CONF.SLACK_API.TOKEN,
+                filename : 'addresses_list.txt',
+                filetype : 'txt',
+                content : data.addresses.list.join('\n'),
+                channels : data.channel.id
+            }
+        });
+    }
+
+    /**
      * @async
      * @private
      * @method _getConversationInfo
@@ -653,7 +707,7 @@ class Self {
      * @private
      * @method _parseCommandMessage
      *
-     * @param {number} off
+     * @param {number} offset
      * @param {Event} event
      */
     _parseCommandMessage(offset, event) {
@@ -709,11 +763,36 @@ class Self {
                 this._parseCommandGetBalance(event);
                 break;
 
+            // Get addresses list
+            case Self.CMD_GET_ADDRESSES:
+                this._parseCommandAddresses(event);
+                break;
+
+            // Update commands
             case Self.CMD_UPDATE:
                 this._parseCommandUpdate(event);
                 break;
 
         }
+    }
+
+    /**
+     * @private
+     * @method _parseCommandAddresses
+     *
+     * @param {Event} event
+     */
+    async _parseCommandAddresses(event) {
+        // No need to go further
+        if (!this._isAdmin(event.user)) {
+            this._answer(event.channel, this._lang.ANSWER_ADMIN_ACCESS_REQUIRED, event.user);
+            return;
+        }
+
+        this._event.pub(this._event.EVENT_SLACK_ADDRESSES_REQUESTED, {
+            channel : {id : event.channel},
+            emitent : {id : event.user}
+        });
     }
 
     /**

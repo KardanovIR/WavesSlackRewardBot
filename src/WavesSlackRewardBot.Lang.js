@@ -158,8 +158,13 @@ class Self {
             '*•* `ping` — проверка жив ли бот;\n' +
             '*•* `seed` — сид фраза вашего кошелька;\n' +
             '*•* `stat month` — статистика по полученным токенам за месяц для всех сотрудников;\n' +
-            '*•* `stat balances` — накопленный итог всех транзакций для всех сотрудников.' +
+            '*•* `stat balances` — накопленный итог всех транзакций для всех сотрудников;\n' +
+            '*•* `stat generosity` — статистика по отправленным токенам за месяц для всех сотрудников.\n' +
             '';
+    }
+
+    static ANSWER_NOTHING_TO_SHOW() {
+        return 'Nothing to show';
     }
 
     /**
@@ -333,6 +338,38 @@ class Self {
      */
     static get ANSWER_STAT_REQUEST_HEAD_FOR_BALANCES() {
         return 'balances';
+    }
+
+    /**
+     * @static
+     * @const {string} ANSWER_STAT_REQUEST_HEAD_FOR_GENEROSITY
+     */
+    static get ANSWER_STAT_REQUEST_HEAD_FOR_GENEROSITY() {
+        return 'generosity';
+    }
+
+    /**
+     * @static
+     * @const {string} ADDRESSES_LIST_REQUEST_FAILED
+     */
+    static get ADDRESSES_LIST_REQUEST_FAILED() {
+        return 'Cannot compute';
+    }
+
+    /**
+     * @static
+     * @const {string} ADDRESSES_LIST_REQUEST_NOTHING
+     */
+    static get ADDRESSES_LIST_REQUEST_NOTHING() {
+        return 'Nothing to show';
+    }
+
+    /**
+     * @static
+     * @const {string} ADDRESSES_LIST_REQUEST_UPLOADING
+     */
+    static get ADDRESSES_LIST_REQUEST_UPLOADING() {
+        return 'Trying to upload file...';
     }
 
     /**
