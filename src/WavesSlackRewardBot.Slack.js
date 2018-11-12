@@ -16,13 +16,6 @@ const CONF = require('../conf.json');
 const {RTMClient, WebClient} = require('@slack/client');
 
 /**
- * @const {restler} Restler
- *
- * @see https://github.com/danwrong/restler
- */
-const Restler = require('restler');
-
-/**
  * @class WavesSlackRewardBot.Slack
  *
  * @see https://github.com/slackapi/node-slack-sdk
@@ -43,6 +36,14 @@ class Self {
      */
     static get CMD_PING() {
         return 'ping';
+    }
+
+    /**
+     * @static
+     * @const {string} CMD_TEST
+     */
+    static get CMD_TEST() {
+        return 'test'
     }
 
     /**
@@ -117,6 +118,7 @@ class Self {
         return [
             Self.CMD_HELP,
             Self.CMD_PING,
+            Self.CMD_TEST,
             Self.CMD_WHOIS,
             Self.CMD_WHOAMI,
             Self.CMD_GET_SEED,
@@ -311,7 +313,8 @@ class Self {
                 if (event.data.balance) {
                     this._answerMyBalance(event.data);
                 } else if (event.data.stat) {
-                    this._answerStat(event.data);
+                    this._uploadStat(event.data);
+//                     this._answerStat(event.data);
                 }
                 break;
 
@@ -435,6 +438,24 @@ class Self {
 
         await this._web.chat.postMessage({channel, text}).
         catch(this._error);
+    }
+
+    /**
+     * @async
+     * @private
+     * @method _upload
+     *
+     * @param {string} channel
+     * @param {string} buffer
+     * @param {string} filename
+     */
+    async _upload(channel, buffer, filename) {
+        this._web.files.upload({
+            filename : filename,
+            filetype : 'txt',
+            content : buffer,
+            channels : channel
+        }).catch(this._error);
     }
 
     /**
@@ -602,46 +623,98 @@ class Self {
     /**
      * @async
      * @private
-     * @method _answerStat
+     * @method _uploadStat
      *
      * @param {object} data
      */
-    async _answerStat(data) {
-        var
-            it0 = -1,
-            last = data.stat.list.length - 1,
-            symbols = CONF.SLACK_API.SYMBOLS_LIMIT,
-            alias = (
-                        data.stat.alias ?
-                        this._lang['ANSWER_STAT_REQUEST_HEAD_FOR_' + data.stat.alias.toUpperCase()] :
-                        this._lang.ANSWER_STAT_REQUEST_HEAD_FOR_MONTH
-                    ).toUpperCase(),
-            buffer = '',
-            list = data.stat.list,
-            item = null;
-
-        // Compile answer message
-        while (++it0 < list.length) {
-            item = list[it0];
-
-            buffer += this._lang.ANSWER_STAT_REQUEST_ITEM.
-                      replace('${user}', Self._getTaggedUser(item[0])).
-                      replace('${thaves}', item[1]);
-
-            // Slack message limit
-            if (buffer.length >= symbols) {
-                buffer += this._lang.ANSWER_STAT_REQUEST_BREAK;
-                break;
-            }
+    async _uploadStat(data) {
+        // No need to go further
+        if (!data.stat.list) {
+            return;
         }
 
-        alias = 'ANSWER_STAT_REQUEST_HEAD_FOR_' + alias;
-        buffer = this._lang.ANSWER_STAT_REQUEST_SUCCEEDED.
-                 replace('${head}', this._lang[alias]).
-                 replace('${body}', buffer);
+        var
+            it0 = -1,
+            sum = 0,
+            space = this._lang.STAT_TABLE_COL_SPACE,
+            width1 = this._lang.STAT_TABLE_COL1_WIDTH,
+            width2 = this._lang.STAT_TABLE_COL2_WIDTH,
+            last = data.stat.list.length - 1,
+            alias = data.stat.alias.toUpperCase(),
+            title = this._lang[`STAT_${alias}_TABLE_TITLE`] + '',
+            total = this._lang[`STAT_${alias}_TABLE_TOTAL`] ?
+                    this._lang[`STAT_${alias}_TABLE_TOTAL`] + '' :
+                    '',
+            title1 = this._lang[`STAT_${alias}_TABLE_COL1_TITLE`] + '',
+            title2 = this._lang[`STAT_${alias}_TABLE_COL2_TITLE`] + '',
+            string1 = '',
+            string2 = '',
+            buffer = '',
+            interval = '',
+            now = new Date(),
+            list = data.stat.list,
+            item = null,
+            user = null;
 
-        // Send
-        this._answer(data.channel.id, buffer);
+        interval += data.stat.alias == 'balances' ? '1-' : '';
+        interval += `${now.getDate()}.${now.getMonth()}.${now.getFullYear()}`;
+
+        // Table title
+        buffer += `${title} (${interval}):\n\n`
+
+        // Table top
+        string1 = ('').padEnd(width1 + width2 + space, '=');
+        buffer += `=${string1}=\n`;
+
+        // Columns titles
+        string1 = (title1).padEnd(width1, ' ');
+        string2 = (title2).padStart(width2, ' ');
+        buffer += ` ${string1}  ${string2} \n`;
+
+        string1 = ('').padEnd(width1 + width2 + space, '-');
+        buffer += ` ${string1}\n`;
+
+        // Table content
+        if (data.stat.list.length) {
+            // Snow rows
+            while (++it0 < data.stat.list.length) {
+                item = list[it0];
+                user = await this._getUserInfo(item[0]).
+                       catch(this._error);
+                user = user && user.user && user.user.profile ?
+                       user.user.profile :
+                       {};
+
+                // Columns titles
+                string1 = ('@' + user.real_name_normalized + '').padEnd(width1, ' ');
+                string2 = (item[1] + '').padStart(width2, ' ');
+                buffer += ` ${string1}  ${string2}\n`;
+
+                sum += +item[1];
+            }
+
+            // Count totals
+            if (total && sum && !isNaN(sum)) {
+                // Table total
+                string1 = ('').padEnd(width1 + width2 + space, '-');
+                buffer += ` ${string1}\n`;
+
+                string1 = (total).padEnd(width1, ' ');
+                string2 = (sum + '').padStart(width2, ' ');
+                buffer += ` ${string1}  ${string2}\n`;
+            }
+        } else {
+            // Show nothing
+            string1 = (Self.STAT_TABLE_IS_EMPTY).padEnd(width1 + width2 + space, ' ');
+            buffer += ` ${string1}\n`
+        }
+
+        // Table bottom
+        string1 = ('').padEnd(width1 + width2 + space, '=');
+        buffer += `=${string1}=\n`;
+
+        // Upload answer
+        this._upload(data.channel.id, buffer, `stat-${data.stat.alias}-${interval}.txt`);
     }
 
     /**
@@ -679,16 +752,19 @@ class Self {
         }
 
         // Send list via file api
-        Restler.post(CONF.SLACK_API.FILES_UPLOAD_URL, {
-            multipart : true,
-            data : {
-                token : CONF.SLACK_API.TOKEN,
-                filename : 'addresses_list.txt',
-                filetype : 'txt',
-                content : data.addresses.list.join('\n'),
-                channels : data.channel.id
-            }
-        });
+        this._upload(data.channel.id, data.addresses.list.join('\n'), 'addresses-list.txt');
+    }
+
+    /**
+     * @async
+     * @private
+     * @method _getUserInfo
+     *
+     * @param {string} id
+     */
+    async _getUserInfo(id) {
+        return await this._web.users.info({user : id}).
+               catch(this._error);
     }
 
     /**
@@ -710,7 +786,7 @@ class Self {
      * @param {number} offset
      * @param {Event} event
      */
-    _parseCommandMessage(offset, event) {
+    async _parseCommandMessage(offset, event) {
         switch (Self.CMD_LIST[offset]) {
 
             // Check if bot's alive
@@ -721,6 +797,10 @@ class Self {
             // Get help
             case Self.CMD_HELP:
                 this._answer(event.channel, this._lang.ANSWER_HELP, event.user);
+                break;
+
+            // Test new functionality
+            case Self.CMD_TEST:
                 break;
 
             // Get my slack id
@@ -743,6 +823,7 @@ class Self {
 
             // Get statistics
             case Self.CMD_GET_STAT:
+                this._answer(event.channel, this._lang.STAT_TABLE_IS_COMPUTING);
                 this._event.pub(this._event.EVENT_SLACK_STAT_REQUESTED, {
                     channel : {id : event.channel},
                     emitent : {id : event.user},

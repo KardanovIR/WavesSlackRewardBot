@@ -414,6 +414,134 @@ class Self {
 
     /**
      * @static
+     * @const {number} STAT_TABLE_COL_SPACE
+     */
+    static get STAT_TABLE_COL_SPACE() {
+        return 2;
+    }
+
+    /**
+     * @static
+     * @const {number} STAT_TABLE_COL1_WIDTH
+     */
+    static get STAT_TABLE_COL1_WIDTH() {
+        return 35;
+    }
+
+    /**
+     * @static
+     * @const {number} STAT_TABLE_COL2_WIDTH
+     */
+    static get STAT_TABLE_COL2_WIDTH() {
+        return 11;
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_TABLE_IS_EMPTY
+     */
+    static get STAT_TABLE_IS_EMPTY() {
+        return 'No values to count';
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_TABLE_IS_COMPUTING
+     */
+    static get STAT_TABLE_IS_COMPUTING() {
+        return 'Computing...';
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_MONTH_TABLE_TITLE
+     */
+    static get STAT_MONTH_TABLE_TITLE() {
+        return 'Statistics for incoming';
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_MONTH_TABLE_TOTAL
+     */
+    static get STAT_MONTH_TABLE_TOTAL() {
+        return 'Totally received';
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_MONTH_TABLE_COL1_TITLE
+     */
+    static get STAT_MONTH_TABLE_COL1_TITLE() {
+        return 'Slack nick';
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_MONTH_TABLE_COL2_TITLE
+     */
+    static get STAT_MONTH_TABLE_COL2_TITLE() {
+        return 'Received';
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_BALANCES_TABLE_TITLE
+     */
+    static get STAT_BALANCES_TABLE_TITLE() {
+        return 'Statistics for wallets balances';
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_BALANCES_TABLE_COL1_TITLE
+     */
+    static get STAT_BALANCES_TABLE_COL1_TITLE() {
+        return 'Slack nick';
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_BALANCES_TABLE_COL2_TITLE
+     */
+    static get STAT_BALANCES_TABLE_COL2_TITLE() {
+        return 'Amount';
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_GENEROSITY_TABLE_TITLE
+     */
+    static get STAT_GENEROSITY_TABLE_TITLE() {
+        return 'Statistics for outgoing';
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_GENEROSITY_TABLE_TOTAL
+     */
+    static get STAT_GENEROSITY_TABLE_TOTAL() {
+        return 'Totally transferred';
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_GENEROSITY_TABLE_COL1_TITLE
+     */
+    static get STAT_GENEROSITY_TABLE_COL1_TITLE() {
+        return 'Slack nick';
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_GENEROSITY_TABLE_COL2_TITLE
+     */
+    static get STAT_GENEROSITY_TABLE_COL2_TITLE() {
+        return 'Transferred';
+    }
+
+    /**
+     * @static
      * @method pluralize
      *
      * @param {number} num

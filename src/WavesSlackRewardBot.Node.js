@@ -180,6 +180,7 @@ class Self {
                 // 
                 data.stat.list = data.stat.list.map((row) => {
                     row[1] = res[row[3]];
+                    row[1] = row[1] ? row[1] : 0;
                     return row;
                 });
 
