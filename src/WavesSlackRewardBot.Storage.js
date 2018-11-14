@@ -523,27 +523,20 @@ class Self {
                 max(wallets.wallet_phrase) as wallet_phrase,
                 max(wallets.wallet_address) as wallet_address,
                 max(wallets.wallet_burned) as wallet_burned,
-                transactions1.emitent_id,
-                sum(transactions1.transaction_amount) AS transactions_amount,
-                ((
-                    SELECT
-                        COUNT(*)
-                    FROM
-                        ${CONF.DB.TRANSACTIONS_TABLE_NAME} as transactions2
-                    WHERE
-                        transactions2.emitent_id = transactions1.emitent_id AND
-                        transactions2.transaction_date >= $1
-                ) * $2) as transactions_fee
+                transactions.emitent_id,
+                sum(transactions.transaction_amount) AS transactions_amount,
+                (count(transactions.*) * $2) as transactions_fee
             FROM
-                ${CONF.DB.TRANSACTIONS_TABLE_NAME} as transactions1
+                ${CONF.DB.TRANSACTIONS_TABLE_NAME} as transactions
             LEFT JOIN 
                 ${CONF.DB.WALLETS_TABLE_NAME} as wallets
             ON
-                wallets.slack_id = transactions1.emitent_id
+                wallets.slack_id = transactions.emitent_id
             WHERE
-                wallets.wallet_burned >= $1
+                wallets.wallet_burned >= $1 AND
+                transactions.transaction_date >= $1
             GROUP BY
-                transactions1.emitent_id
+                transactions.emitent_id
 */
 
     }
