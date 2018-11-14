@@ -116,6 +116,30 @@ class Self {
 
     /**
      * @static
+     * @const {string} EVENT_SLACK_WALLETS_LIST_REQUESTED
+     */
+    get EVENT_SLACK_WALLETS_BURN_REQUESTED() {
+        return 'slackWalletsBurnRequested';
+    }
+
+    /**
+     * @static
+     * @const {string} EVENT_SLACK_WALLETS_LIST_REQUESTED
+     */
+    get EVENT_SLACK_WALLETS_LIST_REQUESTED() {
+        return 'slackWalletsListRequested';
+    }
+
+    /**
+     * @static
+     * @const {string} EVENT_SLACK_WALLETS_UPDATE_REQUESTED
+     */
+    get EVENT_SLACK_WALLETS_UPDATE_REQUESTED() {
+        return 'slackWalletsUpdateRequested';
+    }
+
+    /**
+     * @static
      * @const {string} EVENT_SLACK_UPDATE_WALLETS_REQUESTED
      */
     get EVENT_SLACK_UPDATE_WALLETS_REQUESTED() {
@@ -124,7 +148,7 @@ class Self {
 
     /**
      * @static
-     * @const {string} EVENT_SLACK_UPDATE_WALLETS_REQUESTED
+     * @const {string} EVENT_SLACK_ADDRESSES_REQUESTED
      */
     get EVENT_SLACK_ADDRESSES_REQUESTED() {
         return 'slackAddressesListRequested';
@@ -276,18 +300,18 @@ class Self {
 
     /**
      * @static
-     * @const {string} EVENT_STORAGE_GET_ADDRESSES_LIST_FAILED
+     * @const {string} EVENT_STORAGE_GET_WALLETS_LIST_FAILED
      */
-    get EVENT_STORAGE_GET_ADDRESSES_LIST_FAILED() {
-        return 'storageGetAddressesListFailed';
+    get EVENT_STORAGE_GET_WALLETS_LIST_FAILED() {
+        return 'storageGetWalletsListFailed';
     }
 
     /**
      * @static
-     * @const {string} EVENT_STORAGE_GET_ADDRESSES_LIST_SUCCEEDED
+     * @const {string} EVENT_STORAGE_GET_WALLETS_LIST_SUCCEEDED
      */
-    get EVENT_STORAGE_GET_ADDRESSES_LIST_SUCCEEDED() {
-        return 'storageGetAddressesListSucceeded';
+    get EVENT_STORAGE_GET_WALLETS_LIST_SUCCEEDED() {
+        return 'storageGetWalletsListSucceeded';
     }
 
     /**

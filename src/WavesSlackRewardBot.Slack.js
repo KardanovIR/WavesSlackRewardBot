@@ -103,16 +103,16 @@ class Self {
      * @static
      * @const {string} CMD_UPDATE
      */
-    static get CMD_UPDATE() {
-        return 'update';
+    static get CMD_WALLETS() {
+        return 'wallets'
     }
 
     /**
      * @static
-     * @const {string} CMD_GET_ADDRESSES
+     * @const {string} CMD_UPDATE
      */
-    static get CMD_GET_ADDRESSES() {
-        return 'addresses';
+    static get CMD_UPDATE() {
+        return 'update';
     }
 
     /**
@@ -162,8 +162,8 @@ class Self {
             Self.CMD_GET_STAT,
             Self.CMD_GET_ADDRESS,
             Self.CMD_GET_BALANCE,
-            Self.CMD_GET_ADDRESSES,
-            Self.CMD_UPDATE
+            Self.CMD_UPDATE,
+            Self.CMD_WALLETS
         ];
     }
 
@@ -323,8 +323,8 @@ class Self {
         this._event.sub(this._event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED, this._route);
         this._event.sub(this._event.EVENT_STORAGE_ADDRESS_REQUEST_FAILED, this._route);
         this._event.sub(this._event.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED, this._route);
-        this._event.sub(this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_FAILED, this._route);
-        this._event.sub(this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_SUCCEEDED, this._route);
+        this._event.sub(this._event.EVENT_STORAGE_GET_WALLETS_LIST_FAILED, this._route);
+        this._event.sub(this._event.EVENT_STORAGE_GET_WALLETS_LIST_SUCCEEDED, this._route);
     }
 
     /**
@@ -353,7 +353,6 @@ class Self {
                     this._answerMyBalance(event.data);
                 } else if (event.data.stat) {
                     this._uploadStat(event.data);
-//                     this._answerStat(event.data);
                 }
                 break;
 
@@ -393,13 +392,13 @@ class Self {
                 break;
 
             // Answer with addressses list loading error
-            case this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_FAILED:
-                this._answer(event.data.channel.id, this._lang.ADDRESSES_LIST_REQUEST_FAILED);
+            case this._event.EVENT_STORAGE_GET_WALLETS_LIST_FAILED:
+                this._answer(event.data.channel.id, this._lang.WALLETS_LIST_REQUEST_FAILED);
                 break;
 
-            // Upload addresses list as a file
-            case this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_SUCCEEDED:
-                this._uploadAddressesList(event.data);
+            // Upload wallets list as a file
+            case this._event.EVENT_STORAGE_GET_WALLETS_LIST_SUCCEEDED:
+                this._uploadWalletsList(event.data);
                 break;
 
         }
@@ -505,13 +504,27 @@ class Self {
 
     /**
      * @private
+     * @method _answerHelp
+     *
+     * @param {Event} event
+     */
+    _answerHelp(event) {
+        if (this._isAdmin(event.user)) {
+            this._answer(event.channel, this._lang.ANSWER_ADMIN_HELP, event.user);
+        } else {
+            this._answer(event.channel, this._lang.ANSWER_HELP, event.user);
+        }
+    }
+
+    /**
+     * @private
      * @method _answerNewWalletsCreated
      *
      * @param {object} data
      */
     _answerNewWalletsCreated(data) {
         var
-            created = data.update.users.length,
+            created = data.wallets.list.length,
             text = this._lang.ANSWER_NEW_WALLETS_CREATED.
                    replace('${count}', created).
                    replace('${pluralized}', this._lang.pluralize(
@@ -802,19 +815,24 @@ class Self {
 
     /**
      * @private
-     * @method _uploadAddressesList
+     * @method _uploadWalletsList
      *
      * @param {object} data
      */
-    _uploadAddressesList(data) {
+    _uploadWalletsList(data) {
         // No need to go further
-        if (!data || !data.addresses || !data.addresses.list || !data.addresses.list.length) {
-            this._answer(data.channel.id, this._lang.ADDRESSES_LIST_REQUEST_NOTHING);
+        if (
+            !data ||
+            !data.wallets ||
+            !(data.wallets.list instanceof Array) ||
+            !data.wallets.list.length
+        ) {
+            this._answer(data.channel.id, this._lang.ANSWER_WALLETS_LIST_REQUEST_NOTHING);
             return;
         }
 
         // Send list via file api
-        this._upload(data.channel.id, data.addresses.list.join('\n'), 'addresses-list.txt');
+        this._upload(data.channel.id, data.wallets.list.join('\n'), 'wallets-list.txt');
     }
 
     /**
@@ -858,7 +876,7 @@ class Self {
 
             // Get help
             case Self.CMD_HELP:
-                this._answer(event.channel, this._lang.ANSWER_HELP, event.user);
+                this._answerHelp(event);
                 break;
 
             // Test new functionality
@@ -906,14 +924,8 @@ class Self {
                 this._parseCommandGetBalance(event);
                 break;
 
-            // Get addresses list
-            case Self.CMD_GET_ADDRESSES:
-                this._parseCommandAddresses(event);
-                break;
-
-            // Update commands
-            case Self.CMD_UPDATE:
-                this._parseCommandUpdate(event);
+            case Self.CMD_WALLETS:
+                this._parseCommandWallets(event);
                 break;
 
         }
@@ -921,32 +933,15 @@ class Self {
 
     /**
      * @private
-     * @method _parseCommandAddresses
+     * @method _parseCommandWallets
      *
      * @param {Event} event
      */
-    async _parseCommandAddresses(event) {
-        // No need to go further
-        if (!this._isAdmin(event.user)) {
-            this._answer(event.channel, this._lang.ANSWER_ADMIN_ACCESS_REQUIRED, event.user);
-            return;
-        }
-
-        this._event.pub(this._event.EVENT_SLACK_ADDRESSES_REQUESTED, {
-            channel : {id : event.channel},
-            emitent : {id : event.user}
-        });
-    }
-
-    /**
-     * @private
-     * @method _parseCommandUpdate
-     *
-     * @param {Event} event
-     */
-    async _parseCommandUpdate(event) {
+    async _parseCommandWallets(event) {
         var
-            what = event.text.split(/\s+/),
+            basic = 'list',
+            action = '',
+            raw = null,
             data = null;
 
         // No need to go further
@@ -955,19 +950,28 @@ class Self {
             return;
         }
 
-        // Compile data object
-        what = what.length > 1 ? what[1] : 'wallets';
+        raw = event.text.split(/\s+/);
+        action = (raw instanceof Array) && raw.length > 1 ? raw[1] : basic;
         data = {
                    channel : {id : event.channel},
                    emitent : {id : event.user},
-                   update : {what : what}
+                   wallets : {action : action}
                };
 
-        switch (what) {
+        switch (action) {
+
+            case 'burn':
+                this._parseCommandWalletsBurn(data)
+                break;
+
+            // Get wallets list
+            case 'list':
+                this._parseCommandWalletsList(data);
+                break;
 
             // Update wallets list
-            case 'wallets':
-                this._parseCommandUpdateWallets(data);
+            case 'update':
+                this._parseCommandWalletsUpdate(data);
                 break;
 
         }
@@ -976,17 +980,45 @@ class Self {
     /**
      * @async
      * @private
-     * @method _parseCommandUpdate
+     * @method _parseCommandWalletsBurn
      *
-     * @param {Event} event
+     * @param {object} data
      */
-    async _parseCommandUpdateWallets(data) {
+    async _parseCommandWalletsBurn(data) {
+        data.wallets.list = [];
+
+        this._event.pub(this._event.EVENT_SLACK_WALLETS_BURN_REQUESTED, data);
+    }
+
+    /**
+     * @async
+     * @private
+     * @method _parseCommandWalletsList
+     *
+     * @param {object} data
+     */
+    async _parseCommandWalletsList(data) {
+        data.wallets.list = [];
+
+        this._event.pub(this._event.EVENT_SLACK_WALLETS_LIST_REQUESTED, data);
+    }
+
+    /**
+     * @async
+     * @private
+     * @method _parseCommandWalletsUpdate
+     *
+     * @param {object} data
+     */
+    async _parseCommandWalletsUpdate(data) {
         var
             raw = await this._web.users.list().catch(this._error);
 
-        data.update.users = raw && raw.members ? raw.members.map((user) => {return user.id}) : [];
+        data.wallets.list = raw && raw.members ? 
+                            raw.members.map((user) => {return user.id}) :
+                            [];
 
-        this._event.pub(this._event.EVENT_SLACK_UPDATE_WALLETS_REQUESTED, data);
+        this._event.pub(this._event.EVENT_SLACK_WALLETS_UPDATE_REQUESTED, data);
     }
 
     /**

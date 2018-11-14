@@ -129,7 +129,7 @@ class Self {
             seed = null;
 
         // Get seed for each
-        data.update.users = data.update.users.map((uid) => {
+        data.wallets.list = data.wallets.list.map((uid) => {
             seed = this._module.Seed.create();
 
             return {

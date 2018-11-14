@@ -163,7 +163,34 @@ class Self {
             '';
     }
 
-    static ANSWER_NOTHING_TO_SHOW() {
+    /**
+     * @static
+     * @const {string} ANSWER_HELP
+     */
+    static get ANSWER_ADMIN_HELP() {
+        return Self.ANSWER_HELP +
+            '\n\n' +
+            '*Admin commands:*\n' +
+            '*•* `whois` — get slack user by slack id;\n' +
+            '*•* `wallets list` — get list of all wallets addresses;\n' +
+            '*•* `wallets update` — create wallets for users added recently;\n' +
+            '*•* `wallets burn` — doesn\'t work yet.' +
+            ''
+    }
+
+    /**
+     * @static
+     * @const {string} ANSWER_CANNOT_COMPUTE
+     */
+    static get ANSWER_CANNOT_COMPUTE() {
+        return 'Cannot compute';
+    }
+
+    /**
+     * @static
+     * @const {string} ANSWER_NOTHING_TO_SHOW
+     */
+    static get ANSWER_NOTHING_TO_SHOW() {
         return 'Nothing to show';
     }
 
@@ -297,7 +324,7 @@ class Self {
      * @const {string} ANSWER_STAT_REQUEST_FAILED
      */
     static get ANSWER_STAT_REQUEST_FAILED() {
-        return 'Cannot compute';
+        return Self.ANSWER_CANNOT_COMPUTE;
     }
 
     /**
@@ -350,26 +377,18 @@ class Self {
 
     /**
      * @static
-     * @const {string} ADDRESSES_LIST_REQUEST_FAILED
+     * @const {string} ANSWER_WALLETS_LIST_REQUEST_FAILED
      */
-    static get ADDRESSES_LIST_REQUEST_FAILED() {
-        return 'Cannot compute';
+    static get ANSWER_WALLETS_LIST_REQUEST_FAILED() {
+        return Self.ANSWER_CANNOT_COMPUTE;
     }
 
     /**
      * @static
-     * @const {string} ADDRESSES_LIST_REQUEST_NOTHING
+     * @const {string} ANSWER_WALLETS_LIST_REQUEST_NOTHING
      */
-    static get ADDRESSES_LIST_REQUEST_NOTHING() {
-        return 'Nothing to show';
-    }
-
-    /**
-     * @static
-     * @const {string} ADDRESSES_LIST_REQUEST_UPLOADING
-     */
-    static get ADDRESSES_LIST_REQUEST_UPLOADING() {
-        return 'Trying to upload file...';
+    static get ANSWER_WALLETS_LIST_REQUEST_NOTHING() {
+        return Self.ANSWER_NOTHING_TO_SHOW;
     }
 
     /**

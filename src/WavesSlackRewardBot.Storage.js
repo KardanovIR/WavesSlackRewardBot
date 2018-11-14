@@ -162,12 +162,14 @@ class Self {
                 slack_id,
                 wallet_phrase,
                 wallet_address,
-                wallet_created
+                wallet_created,
+                wallet_burned
             ) VALUES(
                 $1,
                 $2,
                 $3,
-                $4
+                $4,
+                $5
             )
         `;
     }
@@ -236,8 +238,9 @@ class Self {
         this._event.sub(this._event.EVENT_SLACK_STAT_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_SLACK_ADDRESS_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_SLACK_BALANCE_REQUESTED, this._route);
-        this._event.sub(this._event.EVENT_SLACK_ADDRESSES_REQUESTED, this._route);
-        this._event.sub(this._event.EVENT_SLACK_UPDATE_WALLETS_REQUESTED, this._route);
+        this._event.sub(this._event.EVENT_SLACK_WALLETS_BURN_REQUESTED, this._route);
+        this._event.sub(this._event.EVENT_SLACK_WALLETS_LIST_REQUESTED, this._route);
+        this._event.sub(this._event.EVENT_SLACK_WALLETS_UPDATE_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_NODE_WALLETS_CREATED, this._route);
         this._event.sub(this._event.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
     }
@@ -293,14 +296,18 @@ class Self {
                 }
                 break;
 
-            //
-            case this._event.EVENT_SLACK_UPDATE_WALLETS_REQUESTED:
-                this._getUsersWithoutWallets(event.data);
+            case this._event.EVENT_SLACK_WALLETS_BURN_REQUESTED:
+                this._getAllAddressesWithSumToBurn(event.data);
                 break;
 
             //
-            case this._event.EVENT_SLACK_ADDRESSES_REQUESTED:
+            case this._event.EVENT_SLACK_WALLETS_LIST_REQUESTED:
                 this._getAllAddresses(event.data);
+                break;
+
+            //
+            case this._event.EVENT_SLACK_WALLETS_UPDATE_REQUESTED:
+                this._getUsersWithoutWallets(event.data);
                 break;
 
         }
@@ -480,14 +487,76 @@ class Self {
     }
 
     /**
+     * @todo
+     *
      * @async
      * @private
      * @method _getAllAddresses
      *
      * @param {object} data
      *
-     * @fires this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_FAILED
-     * @fires this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_SUCCEEDED
+     * @fires this._event.EVENT_STORAGE_GET_WALLETS_TO_BURN_FAILED
+     * @fires this._event.EVENT_STORAGE_GET_WALLETS_TO_BURN_SUCCEEDED
+     */
+    async _getAllAddressesWithSumToBurn(data) {
+        var
+            date = new Date(),
+            wallets = await this._request(
+                          Self.SQL_GET_TOP_GENEROSITY,
+                          []
+                      ).catch(this._error);
+
+        var
+            date = new Date(),
+            wallets = null;
+
+        // Move date to the very beginning of current month
+        date.setDate(1);
+        date.setMonth(date.getMonth() -1);
+        date.setHours(0);
+        date.setMinutes(0);
+        date.setSeconds(0);
+
+/*
+            SELECT
+                max(wallets.slack_id) as slack_id,
+                max(wallets.wallet_phrase) as wallet_phrase,
+                max(wallets.wallet_address) as wallet_address,
+                max(wallets.wallet_burned) as wallet_burned,
+                transactions1.emitent_id,
+                sum(transactions1.transaction_amount) AS transactions_amount,
+                ((
+                    SELECT
+                        COUNT(*)
+                    FROM
+                        ${CONF.DB.TRANSACTIONS_TABLE_NAME} as transactions2
+                    WHERE
+                        transactions2.emitent_id = transactions1.emitent_id AND
+                        transactions2.transaction_date >= $1
+                ) * $2) as transactions_fee
+            FROM
+                ${CONF.DB.TRANSACTIONS_TABLE_NAME} as transactions1
+            LEFT JOIN 
+                ${CONF.DB.WALLETS_TABLE_NAME} as wallets
+            ON
+                wallets.slack_id = transactions1.emitent_id
+            WHERE
+                wallets.wallet_burned >= $1
+            GROUP BY
+                transactions1.emitent_id
+*/
+
+    }
+
+    /**
+     * @async
+     * @private
+     * @method _getAllAddresses
+     *
+     * @param {object} data
+     *
+     * @fires this._event.EVENT_STORAGE_GET_WALLETS_LIST_FAILED
+     * @fires this._event.EVENT_STORAGE_GET_WALLETS_LIST_SUCCEEDED
      */
     async _getAllAddresses(data) {
         var
@@ -498,7 +567,7 @@ class Self {
 
         // No need to go further
         if (!wallets || !wallets.rowCount) {
-            this._event.pub(this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_FAILED, data);
+            this._event.pub(this._event.EVENT_STORAGE_GET_WALLETS_LIST_FAILED, data);
             return;
         }
 
@@ -508,11 +577,9 @@ class Self {
         });
 
         // Add addresses field to request
-        data.addresses = {
-            list : wallets
-        };
+        data.wallets.list = wallets;
 
-        this._event.pub(this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_SUCCEEDED, data);
+        this._event.pub(this._event.EVENT_STORAGE_GET_WALLETS_LIST_SUCCEEDED, data);
     }
 
     /**
@@ -678,17 +745,19 @@ class Self {
      */
     async _createNewUsers(data) {
         var
+            burned = new Date(),
             created = new Date();
 
         // Send requests
-        data.update.users.forEach(async (item) => {
+        data.wallets.list.forEach(async (item) => {
             this._request(
                 Self.SQL_CREATE_USER,
                 [
                     item.slack_id,
                     item.wallet_phrase,
                     item.wallet_address,
-                    created
+                    created,
+                    burned
                 ]
             );
         });
@@ -724,7 +793,7 @@ class Self {
         });
 
         // Filter users with wallets
-        data.update.users = data.update.users.filter((uid) => {
+        data.wallets.list = data.wallets.list.filter((uid) => {
             if (users.indexOf(uid) === -1) {
                 return true;
             }
