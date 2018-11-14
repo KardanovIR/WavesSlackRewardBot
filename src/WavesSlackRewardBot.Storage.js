@@ -186,6 +186,19 @@ class Self {
     }
 
     /**
+     * @static
+     * @const {string} SQL_GET_ALL_WALLETS_ADDRESSES
+     */
+    static get SQL_GET_ALL_WALLETS_ADDRESSES() {
+        return `
+            SELECT
+                wallet_address
+            FROM
+                ${CONF.DB.WALLETS_TABLE_NAME}
+        `;
+    }
+
+    /**
      * @constructor
      *
      * @param {object} args
@@ -246,16 +259,6 @@ class Self {
             // Check if wallets exist and send transaction request
             case this._event.EVENT_SLACK_WAVES_GRANTED:
                 this._checkWallets(event.data);
-                break;
-
-            //
-            case this._event.EVENT_SLACK_ALL_REQUESTED:
-                this._getStatAll(event.data);
-                break;
-
-            //
-            case this._event.EVENT_SLACK_TOP_REQUESTED:
-                this._getStatTop(event.data);
                 break;
 
             // 
@@ -406,8 +409,7 @@ class Self {
         // Make request
         stat = await this._request(
                    Self.SQL_GET_TOP_GENEROSITY,
-                   [date],
-                   'array'
+                   [date]
                ).catch(this._error);
 
         // No need to go further
@@ -441,8 +443,7 @@ class Self {
         // Make request
         stat = await this._request(
                    Self.SQL_GET_TOP_RECIPIENTS,
-                   [date],
-                   'array'
+                   [date]
                ).catch(this._error);
 
         // No need to go further
@@ -467,8 +468,7 @@ class Self {
             // Make request
             stat = await this._request(
                        Self.SQL_GET_ALL_RECIPIENTS,
-                       [],
-                       'array'
+                       []
                    ).catch(this._error);
 
         // No need to go further
@@ -477,15 +477,6 @@ class Self {
         }
 
         return stat.rows;
-    }
-
-    static get SQL_GET_ALL_WALLETS_ADDRESSES() {
-        return `
-            SELECT
-                wallet_address
-            FROM
-                ${CONF.DB.WALLETS_TABLE_NAME}
-        `;
     }
 
     /**
@@ -502,8 +493,7 @@ class Self {
         var
             wallets = await this._request(
                           Self.SQL_GET_ALL_WALLETS_ADDRESSES,
-                          [],
-                          'array'
+                          []
                       ).catch(this._error);
 
         // No need to go further
@@ -512,17 +502,16 @@ class Self {
             return;
         }
 
-        // 
+        // Simplify array format
         wallets = wallets.rows.map((item) => {
-            return item[0];
+            return item.wallet_address;
         });
 
-        // 
+        // Add addresses field to request
         data.addresses = {
             list : wallets
         };
 
-        //
         this._event.pub(this._event.EVENT_STORAGE_GET_ADDRESSES_LIST_SUCCEEDED, data);
     }
 
@@ -538,7 +527,7 @@ class Self {
      */
     async _getMySeed(data) {
         var
-            wallet = await this._checkWallet(data);
+            wallet = await this._checkWallet(data).catch(this._error);
 
         // No need to go further
         if (!wallet) {
@@ -547,7 +536,7 @@ class Self {
         }
 
         // Set emitent address
-        data.emitent.seed = wallet[1];
+        data.emitent.seed = wallet.wallet_phrase;
 
         //
         this._event.pub(this._event.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED, data);
@@ -564,7 +553,7 @@ class Self {
      */
     async _getMyAddress(data) {
         var
-            wallet = await this._checkWallet(data);
+            wallet = await this._checkWallet(data).catch(this._error);
 
         // No need to go further
         if (!wallet) {
@@ -573,7 +562,7 @@ class Self {
         }
 
         // Set emitent address
-        data.emitent.address = wallet[2];
+        data.emitent.address = wallet.wallet_address;
 
         //
         this._event.pub(this._event.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED, data);
@@ -590,7 +579,7 @@ class Self {
      */
     async _getMyBalance(data) {
         var
-            wallet = await this._checkWallet(data);
+            wallet = await this._checkWallet(data).catch(this._error);
 
         // No need to go further
         if (!wallet) {
@@ -598,9 +587,8 @@ class Self {
         }
 
         // Set emitent address
-        data.emitent.address = wallet[2];
+        data.emitent.address = wallet.wallet_address;
 
-        // 
         this._event.pub(this._event.EVENT_STORAGE_REQUEST_BALANCE, data);
     }
 
@@ -621,8 +609,7 @@ class Self {
             id = (data.recipient ? data.recipient.id : data.emitent.id),
             wallet = await this._request(
                           Self.SQL_GET_WALLET_ID,
-                          [id],
-                          'array'
+                          [id]
                       ).catch(this._error);
 
         // No need to go further
@@ -650,8 +637,7 @@ class Self {
         var
             wallets = await this._request(
                           Self.SQL_GET_WALLETS_IDS,
-                          [data.emitent.id, data.recipient.id],
-                          'array'
+                          [data.emitent.id, data.recipient.id]
                       ).catch(this._error);
 
         // No need to go further
@@ -662,10 +648,10 @@ class Self {
 
         // Add address and keyphrase
         wallets.rows.forEach((row) => {
-            if (row[0] == data.emitent.id) {
-                data.emitent.phrase = row[1];
-            } else if (row[0] == data.recipient.id) {
-                data.recipient.address = row[2];
+            if (row.slack_id == data.emitent.id) {
+                data.emitent.phrase = row.wallet_phrase;
+            } else if (row.slack_id == data.recipient.id) {
+                data.recipient.address = row.wallet_address;
             }
         });
 
@@ -703,8 +689,7 @@ class Self {
                     item.wallet_phrase,
                     item.wallet_address,
                     created
-                ],
-                'array'
+                ]
             );
         });
 
@@ -725,8 +710,7 @@ class Self {
         var
             users = await this._request(
                         Self.SQL_GET_ALL_USERS_IDS,
-                        [],
-                        'array'
+                        []
                     ).catch(this._error);
 
         // No need to go further
@@ -736,7 +720,7 @@ class Self {
 
         // Get users ids list from rows
         users = users.rows.map((row) => {
-            return row[0];
+            return row.slack_id;
         });
 
         // Filter users with wallets

@@ -4,6 +4,11 @@
 const CONF = require('../conf.json');
 
 /**
+ * @const {WavesSlackRewardBot.Request} Request
+ */
+const Request = require('./WavesSlackRewardBot.Request.js');
+
+/**
  * @const {@slack/client.RTMClient} RTMClient
  *
  * @see https://slackapi.github.io/node-slack-sdk/rtm_api
@@ -108,6 +113,38 @@ class Self {
      */
     static get CMD_GET_ADDRESSES() {
         return 'addresses';
+    }
+
+    /**
+     * @static
+     * @const {string} EVENT_MESSAGE
+     */
+    static get EVENT_MESSAGE() {
+        return 'message';
+    }
+
+    /**
+     * @static
+     * @const {string} EVENT_TEAM_JOIN
+     */
+    static get EVENT_TEAM_JOIN() {
+        return 'team_join';
+    }
+
+    /**
+     * @static
+     * @const {string} EVENT_IM_CREATED
+     */
+    static get EVENT_IM_CREATED() {
+        return 'im_created';
+    }
+
+    /**
+     * @static
+     * @const {string} EVENT_REACTION_ADDED
+     */
+    static get EVENT_REACTION_ADDED() {
+        return 'reaction_added'
     }
 
     /**
@@ -269,8 +306,10 @@ class Self {
      */
     _live() {
         // Slack events
-        this._rtm.on('message', this._routeMessages);
-        this._rtm.on('reaction_added', this._routeMessages);
+        this._rtm.on(Self.EVENT_MESSAGE, this._routeMessages);
+        this._rtm.on(Self.EVENT_TEAM_JOIN, this._routeMessages);
+        this._rtm.on(Self.EVENT_IM_CREATED, this._routeMessages);
+        this._rtm.on(Self.EVENT_REACTION_ADDED, this._routeMessages);
 
         // Modules events
         this._event.sub(this._event.EVENT_NODE_REQUEST_ABORTED, this._route);
@@ -391,7 +430,7 @@ class Self {
         switch (event.type) {
 
             // Regular message
-            case 'message':
+            case Self.EVENT_MESSAGE:
                 if (await this._isIM(event.channel).catch(this._error)) {
                     text = event.text.toString().split(' ').shift().toLowerCase();
                     cmd = Self.CMD_LIST.indexOf(text);
@@ -409,8 +448,14 @@ class Self {
                 }
                 break;
 
+            // New colleague joined
+            case Self.EVENT_TEAM_JOIN:
+            case Self.EVENT_IM_CREATED:
+                this._answer('@UCZE3R4TV', event.type + '\n\n' + JSON.stringify(event.user));
+                break;
+
             // Reaction message
-            case 'reaction_added':
+            case Self.EVENT_REACTION_ADDED:
                 this._parseReactionMessage(event);
                 break;
 
@@ -640,6 +685,7 @@ class Self {
             width1 = this._lang.STAT_TABLE_COL1_WIDTH,
             width2 = this._lang.STAT_TABLE_COL2_WIDTH,
             last = data.stat.list.length - 1,
+            id = '',
             alias = data.stat.alias.toUpperCase(),
             title = this._lang[`STAT_${alias}_TABLE_TITLE`] + '',
             total = this._lang[`STAT_${alias}_TABLE_TOTAL`] ?
@@ -656,7 +702,7 @@ class Self {
             item = null,
             user = null;
 
-        interval += data.stat.alias == 'balances' ? '1-' : '';
+        interval += data.stat.alias != 'balances' ? '1-' : '';
         interval += `${now.getDate()}.${now.getMonth()}.${now.getFullYear()}`;
 
         // Table title
@@ -679,7 +725,23 @@ class Self {
             // Snow rows
             while (++it0 < data.stat.list.length) {
                 item = list[it0];
-                user = await this._getUserInfo(item[0]).
+
+                // Get slack user id
+                switch (data.stat.alias) {
+
+                    case 'month':
+                    case 'balances':
+                        id = item.recipient_id;
+                        break;
+
+                    case 'generosity':
+                        id = item.emitent_id;
+                        break;
+
+                }
+
+                // Get user object
+                user = await this._getUserInfo(id).
                        catch(this._error);
                 user = user && user.user && user.user.profile ?
                        user.user.profile :
@@ -687,7 +749,7 @@ class Self {
 
                 // Columns titles
                 string1 = ('@' + user.real_name_normalized + '').padEnd(width1, ' ');
-                string2 = (item[1] + '').padStart(width2, ' ');
+                string2 = (item.transaction_amount + '').padStart(width2, ' ');
                 buffer += ` ${string1}  ${string2}\n`;
 
                 sum += +item[1];

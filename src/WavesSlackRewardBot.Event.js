@@ -84,22 +84,6 @@ class Self {
 
     /**
      * @static
-     * @const {string} EVENT_SLACK_ALL_REQUESTED
-     */
-    get EVENT_SLACK_ALL_REQUESTED() {
-        return 'slackAllRequested';
-    }
-
-    /**
-     * @static
-     * @const {string} EVENT_SLACK_TOP_REQUESTED
-     */
-    get EVENT_SLACK_TOP_REQUESTED() {
-        return 'slackTopRequested';
-    }
-
-    /**
-     * @static
      * @const {string} EVENT_SLACK_SEED_REQUESTED
      */
     get EVENT_SLACK_SEED_REQUESTED() {
@@ -319,7 +303,7 @@ class Self {
      * @param {string} type
      * @param {Function} handler
      */
-    sub(type, handler) {
+    off(type, handler) {
         this._event.off(type, handler);
     }
 

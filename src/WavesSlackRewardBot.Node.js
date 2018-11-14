@@ -145,7 +145,7 @@ class Self {
 
     /**
      * @private
-     * @method _transferWaves
+     * @method _checkBalances
      *
      * @param {object} data
      *
@@ -177,18 +177,20 @@ class Self {
         }).
         on('success', (res, xhr) => {
             if (data.stat.alias == 'balances') {
-                // 
+                // Correct data array
                 data.stat.list = data.stat.list.map((row) => {
-                    row[1] = res[row[3]];
-                    row[1] = row[1] ? row[1] : 0;
+                    row.transaction_amount = res[row.wallet_address];
+                    row.transaction_amount = row.transaction_amount ?
+                                             row.transaction_amount :
+                                             0;
                     return row;
                 });
 
                 // Resort array due to amounts from Nodes
                 data.stat.list.sort((a, b) => {
-                    if (a[1] < b[1]) {
+                    if (a.transaction_amount < b.transaction_amount) {
                         return 1;
-                    } else if (a[1] > b[1]) {
+                    } else if (a.transaction_amount > b.transaction_amount) {
                         return -1;
                     }
 
@@ -202,7 +204,7 @@ class Self {
 
     /**
      * @private
-     * @method _transferWaves
+     * @method _checkBalance
      *
      * @param {object} data
      *
