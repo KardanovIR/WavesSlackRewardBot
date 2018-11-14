@@ -238,7 +238,7 @@ class Self {
      * @const {string} ANSWER_YOUR_SEED_IS
      */
     static get ANSWER_YOUR_SEED_IS() {
-        return 'Your wallet seed is *${seed}*';
+        return 'Your wallet seed is *${phrase}*';
     }
 
     /**
@@ -247,7 +247,7 @@ class Self {
      */
     static get ANSWER_YOUR_SEED_IS_UNKNOWN() {
         return Self.ANSWER_YOUR_SEED_IS.
-               replace('${seed}', 'unknown');
+               replace('${phrase}', 'unknown');
     }
 
     /**

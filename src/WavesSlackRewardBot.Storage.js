@@ -360,18 +360,18 @@ class Self {
 
             // Top generous
             case 'generosity':
-                list = await this._getStatGenerosity(data);
+                list = await this._getStatGenerosity(data).catch(this._error);
                 break;
 
             // Total balances
             case 'balances':
-                list = await this._getStatBalances(data);
+                list = await this._getStatBalances(data).catch(this._error);
                 break;
 
             // Montly balance
             default:
                 data.stat.alias = 'month';
-                list = await this._getStatMonth(data);
+                list = await this._getStatMonth(data).catch(this._error);
                 break;
         }
 
@@ -536,7 +536,7 @@ class Self {
         }
 
         // Set emitent address
-        data.emitent.seed = wallet.wallet_phrase;
+        data.emitent.phrase = wallet.wallet_phrase;
 
         //
         this._event.pub(this._event.EVENT_STORAGE_SEED_REQUEST_SUCCEEDED, data);

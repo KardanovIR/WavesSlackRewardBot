@@ -606,7 +606,7 @@ class Self {
     async _answerMySeed(data) {
         var
             text = this._lang.ANSWER_YOUR_SEED_IS.
-                   replace('${seed}', data.emitent.seed);
+                   replace('${phrase}', data.emitent.phrase);
 
         this._answer(data.channel.id, text);
     }
