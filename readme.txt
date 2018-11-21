@@ -32,6 +32,11 @@
         "REQUEST_TIMEOUT" : 5000,
         "CONFIG_ALIAS" : "{TYPE_OF_CONFIG}",
         "FEE_AMOUNT" : 1,
+        "BURN_FEE_AMOUNT" : 1,
+        "REFILL_AMOUNT" : 100,
+        "REFILL_CHECKSUM" : 200,
+        "REFILL_REQUESTS_LIMIT" : 100,
+        "REFILL_SEED" : "",
         "ASSET_ID" : "{assetId}",
         "TRANSFER_LINK" : "https://wavesexplorer.com/tx/{transactionId}"
       }
