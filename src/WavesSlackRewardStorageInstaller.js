@@ -1,5 +1,7 @@
 // Conf
-const CONF = require('../conf.json');
+const CONF = process.argv[2] ?
+             require(`../conf.${process.argv[2]}.json`) :
+             require('../conf.mainnet.json');
 
 // libs
 const {Client} = require('pg');

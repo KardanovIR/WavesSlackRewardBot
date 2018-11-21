@@ -1,7 +1,10 @@
 /**
  * @const {object} CONF
  */
-const CONF = require('../conf.json');
+// const CONF = require('../conf.json');
+const CONF = process.argv[2] ?
+             require(`../conf.${process.argv[2]}.json`) :
+             require('../conf.mainnet.json');
 
 /**
  * @const {WavesSlackRewardBot.Request} Request
@@ -313,6 +316,7 @@ class Self {
 
         // Modules events
         this._event.sub(this._event.EVENT_NODE_REQUEST_ABORTED, this._route);
+        this._event.sub(this._event.EVENT_NODE_REQUEST_FINISHED, this._route);
         this._event.sub(this._event.EVENT_NODE_REQUEST_REJECTED, this._route);
         this._event.sub(this._event.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
         this._event.sub(this._event.EVENT_STORAGE_CREATED_NEW_WALLETS, this._route);
@@ -325,6 +329,8 @@ class Self {
         this._event.sub(this._event.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED, this._route);
         this._event.sub(this._event.EVENT_STORAGE_GET_WALLETS_LIST_FAILED, this._route);
         this._event.sub(this._event.EVENT_STORAGE_GET_WALLETS_LIST_SUCCEEDED, this._route);
+        this._event.sub(this._event.EVENT_STORAGE_GET_WALLETS_TO_BURN_FAILED, this._route);
+        this._event.sub(this._event.EVENT_STORAGE_GET_WALLETS_TO_BURN_SUCCEEDED, this._route);
     }
 
     /**
@@ -393,12 +399,31 @@ class Self {
 
             // Answer with addressses list loading error
             case this._event.EVENT_STORAGE_GET_WALLETS_LIST_FAILED:
-                this._answer(event.data.channel.id, this._lang.WALLETS_LIST_REQUEST_FAILED);
+            case this._event.EVENT_STORAGE_GET_WALLETS_TO_BURN_FAILED:
+                this._answer(event.data.channel.id, this._lang.ANSWER_CANNOT_COMPUTE);
                 break;
 
             // Upload wallets list as a file
             case this._event.EVENT_STORAGE_GET_WALLETS_LIST_SUCCEEDED:
-                this._uploadWalletsList(event.data);
+                if (event.data.wallets.action == 'list') {
+                    this._uploadWalletsList(event.data);
+                }
+                break;
+
+            // Upload wallets burned transactions
+            case this._event.EVENT_NODE_REQUEST_FINISHED:
+
+                switch (event.data.wallets.action) {
+
+                    case 'burn':
+                        this._uploadBurnedWallets(event.data);
+                        break;
+
+                    case 'refill':
+                        this._uploadRefilledWallets(event.data);
+                        break;
+
+                }
                 break;
 
         }
@@ -681,6 +706,96 @@ class Self {
     /**
      * @async
      * @private
+     * @method _uploadBurnedWallets
+     *
+     * @param {object} data
+     */
+    async _uploadBurnedWallets(data) {
+        var
+            it0 = -1,
+            width = this._lang.BURN_TABLE_COL_WIDTH,
+            space = this._lang.BURN_TABLE_COL_SPACE,
+            al0 = '',
+            when = '',
+            title = this._lang[`BURN_TABLE_TITLE`] + '',
+            title1 = this._lang.BURN_TABLE_BURNED_WALLETS_TITLE,
+            title2 = this._lang.BURN_TABLE_REJECTED_WALLETS_TITLE,
+            buffer = '',
+            string = '',
+            now = new Date(),
+            wallet = null;
+
+        when = `${now.getDate()}.${now.getMonth()}.${now.getFullYear()}`;
+        buffer += `${title} (${when}):\n\n`;
+
+        // Table top
+        string = ('').padEnd(width + space, '=');
+        buffer += `=${string}=\n`;
+
+        // Columns titles
+        string = (title1).padEnd(width, ' ');
+        buffer += ` ${string} \n`;
+
+        string = ('').padEnd(width + space, '-');
+        buffer += ` ${string}\n`;
+
+        // Table content
+        for (al0 in data.wallets.burned) {
+            wallet = data.wallets.burned[al0];
+
+            // Columns titles
+            string = (wallet.wallet_address + '').padEnd(width, ' ');
+            buffer += ` ${string} \n`;
+        }
+
+        string = ('').padEnd(width + space, '-') + '\n\n ';
+        string += (title2).padEnd(width, ' ') + '\n ';
+        string += ('').padEnd(width + space, '-');
+        buffer += ` ${string}\n`;
+
+        // Table content
+        for (al0 in data.wallets.rejected) {
+            wallet = data.wallets.rejected[al0];
+
+            // Columns titles
+            string = (wallet.wallet_address + '').padEnd(width, ' ');
+            buffer += ` ${string} \n`;
+        }
+
+        // Table bottom
+        string = ('').padEnd(width + space, '=');
+        buffer += `=${string}=\n`;
+
+        // Upload answer
+        this._upload(data.channel.id, buffer, `burnded-wallets-${when}.txt`);
+    }
+
+    /**
+     * @async
+     * @private
+     * @method _uploadRefilledWallets
+     *
+     * @param {object} data
+     */
+    _uploadRefilledWallets(data) {
+        var
+            refilled = data.wallets.succeeded.length,
+            text = this._lang.ANSWER_ALL_WALLETS_REFILLED.
+                   replace('${count}', refilled).
+                   replace('${pluralized}', this._lang.pluralize(
+                       refilled,
+                       this._lang.WALLET_ONE,
+                       this._lang.WALLET_TWO,
+                       this._lang.WALLET_ALL
+                   ));
+
+        this._answer(data.channel.id, text);
+//         console.log('_uploadRefilledWallets(data)', data);
+    }
+
+    /**
+     * @async
+     * @private
      * @method _uploadStat
      *
      * @param {object} data
@@ -719,7 +834,7 @@ class Self {
         interval += `${now.getDate()}.${now.getMonth()}.${now.getFullYear()}`;
 
         // Table title
-        buffer += `${title} (${interval}):\n\n`
+        buffer += `${title} (${interval}):\n\n`;
 
         // Table top
         string1 = ('').padEnd(width1 + width2 + space, '=');
@@ -903,7 +1018,7 @@ class Self {
 
             // Get statistics
             case Self.CMD_GET_STAT:
-                this._answer(event.channel, this._lang.STAT_TABLE_IS_COMPUTING);
+                this._answer(event.channel, this._lang.ANSWER_COMPUTING);
                 this._event.pub(this._event.EVENT_SLACK_STAT_REQUESTED, {
                     channel : {id : event.channel},
                     emitent : {id : event.user},
@@ -950,6 +1065,10 @@ class Self {
             return;
         }
 
+        // Tell that request's in progress
+        this._answer(event.channel, this._lang.ANSWER_COMPUTING);
+
+        // Prepare data
         raw = event.text.split(/\s+/);
         action = (raw instanceof Array) && raw.length > 1 ? raw[1] : basic;
         data = {
@@ -960,6 +1079,7 @@ class Self {
 
         switch (action) {
 
+            // Burn wallets underflow
             case 'burn':
                 this._parseCommandWalletsBurn(data)
                 break;
@@ -974,7 +1094,25 @@ class Self {
                 this._parseCommandWalletsUpdate(data);
                 break;
 
+            // Refill wallets
+            case 'refill':
+                this._parseCommandWalletsRefill(data);
+                break;
+
         }
+    }
+
+    /**
+     * @async
+     * @private
+     * @method _parseCommandWalletsRefill
+     *
+     * @param {object} data
+     */
+    async _parseCommandWalletsRefill(data) {
+        data.wallets.list = [];
+
+        this._event.pub(this._event.EVENT_SLACK_WALLETS_REFILL_REQUESTED, data);
     }
 
     /**

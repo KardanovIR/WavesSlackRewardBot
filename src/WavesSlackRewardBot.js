@@ -9,7 +9,10 @@
 /**
  * @const {object} CONF
  */
-const CONF = require('../conf.json');
+// const CONF = require('../conf.json');
+const CONF = process.argv[2] ?
+             require(`../conf.${process.argv[2]}.json`) :
+             require('../conf.mainnet.json');
 
 /**
  * @class WavesSlackRewardBot

@@ -10,7 +10,10 @@
 /**
  * @const {object} CONF
  */
-const CONF = require('../conf.json');
+// const CONF = require('../conf.json');
+const CONF = process.argv[2] ?
+             require(`../conf.${process.argv[2]}.json`) :
+             require('../conf.mainnet.json');
 
 /**
  * @const {restler} Restler
@@ -31,7 +34,7 @@ const WavesAPI = require('@waves/waves-api');
  *
  * @see https://www.npmjs.com/package/waves-transactions
  */
-const {transfer} = require('waves-transactions');
+const {burn, transfer, massTransfer} = require('waves-transactions');
 
 /**
  * @class WavesSlackRewardBot.Node
@@ -79,6 +82,8 @@ class Self {
         this._event.sub(this._event.EVENT_STORAGE_REQUEST_BALANCE, this._route);
         this._event.sub(this._event.EVENT_STORAGE_CREATE_NEW_WALLETS, this._route);
         this._event.sub(this._event.EVENT_STORAGE_STAT_REQUEST_SUCCEEDED, this._route);
+        this._event.sub(this._event.EVENT_STORAGE_GET_WALLETS_LIST_SUCCEEDED, this._route);
+        this._event.sub(this._event.EVENT_STORAGE_GET_WALLETS_TO_BURN_SUCCEEDED, this._route);
     }
 
     /**
@@ -115,6 +120,177 @@ class Self {
                 this._checkBalances(event.data);
                 break;
 
+            case this._event.EVENT_STORAGE_GET_WALLETS_TO_BURN_SUCCEEDED:
+                this._burnWalletsUnderflow(event.data);
+                break;
+
+            // Upload wallets list as a file
+            case this._event.EVENT_STORAGE_GET_WALLETS_LIST_SUCCEEDED:
+                if (event.data.wallets.action == 'refill') {
+                    this._refillWallets(event.data);
+                }
+                break;
+
+        }
+    }
+
+    /**
+     * @private
+     * @method _refillWallets
+     *
+     * @param {object} data
+     */
+    _refillWallets(data) {
+        var
+            it0 = -1,
+            ln0 = data.wallets.check,
+            beg = 0,
+            end = 0,
+            rows = null,
+            params = {
+                         transfers : [],
+                         assetId : CONF.WAVES_API.ASSET_ID,
+                         timestamp : Date.now()
+                         
+                     },
+            request = null;
+
+        while (++it0 < ln0) {
+            beg = it0 * CONF.WAVES_API.REFILL_REQUESTS_LIMIT;
+            end = (beg + CONF.WAVES_API.REFILL_REQUESTS_LIMIT);
+            end = end < data.wallets.list.length ? end : undefined;
+            rows = data.wallets.list.slice(beg, end);
+
+            params.transfers = rows;
+
+            request = massTransfer(params, CONF.WAVES_API.REFILL_SEED);
+
+            // Send ready and signed request to Waves api
+            Restler.postJson(CONF.WAVES_API.TRANSACTION_URL, request).
+            on('fail', (res, xhr) => {
+                this._event.pub(this._event.EVENT_NODE_REQUEST_REJECTED, data);
+                this._finishRefillWallets(data, 'rejected', rows, res);
+            }).
+            on('error', (exc, xhr) => {
+                this._event.pub(this._event.EVENT_NODE_REQUEST_ABORTED, data);
+                this._finishRefillWallets(data, 'rejected', rows, exc);
+            }).
+            on('timeout', (res, xhr) => {
+                this._event.pub(this._event.EVENT_NODE_REQUEST_ABORTED, data);
+                this._finishRefillWallets(data, 'rejected', rows, res);
+            }).
+            on('success', (res, xhr) => {
+                this._finishRefillWallets(data, 'succeeded', rows, res);
+            });
+        }
+    }
+
+    /**
+     * @private
+     * @method _finishBurnWalletsUnderflow
+     *
+     * @param {object} data
+     * @param {string} alias
+     * @param {Array} rows
+     * @param {object} res
+     */
+    _finishRefillWallets(data, alias, rows, res) {
+        data.wallets[alias] = [
+            ...data.wallets[alias],
+            ...rows
+        ];
+
+        data.wallets.check--;
+
+        if (!data.wallets.check) {
+            this._event.pub(this._event.EVENT_NODE_REQUEST_FINISHED, data);
+        }
+    }
+
+    /**
+     * @private
+     * @method _burnWalletUnderflow
+     *
+     * @param {object} data
+     */
+    _burnWalletUnderflow(row, id, data) {
+        var
+            params = {
+                         quantity : row.burn_quantity,
+                         assetId : CONF.WAVES_API.ASSET_ID,
+                         timestamp : Date.now(),
+                         fee : CONF.WAVES_API.BURN_FEE_AMOUNT
+                     },
+            request = burn(params, row.wallet_phrase);
+
+//         this._finishBurnWalletsUnderflow(data, 'burned', id, row, {id : 'sdfsdfsdfs33RESFSFSDDSFSDFS'});
+
+/*
+        // Send ready and signed request to Waves api
+        Restler.postJson(CONF.WAVES_API.TRANSACTION_URL, request).
+        on('fail', (res, xhr) => {
+            this._finishBurnWalletsUnderflow(data, 'rejected', id, row, res);
+        }).
+        on('error', (exc, xhr) => {
+            this._finishBurnWalletsUnderflow(data, 'rejected', id, row, exc);
+        }).
+        on('timeout', (res, xhr) => {
+            this._finishBurnWalletsUnderflow(data, 'rejected', id, row, res);
+        }).
+        on('success', (res, xhr) => {
+            this._finishBurnWalletsUnderflow(data, 'burned', id, row, res);
+        });
+*/
+    }
+
+    /**
+     * @private
+     * @method _burnWalletsUnderflow
+     *
+     * @param {object} data
+     */
+    _burnWalletsUnderflow(data) {
+        var
+            quantity = 0;
+
+        data.wallets.list.forEach((row, id) => {
+            row.burn_quantity = CONF.WAVES_API.REFILL_CHECKSUM -
+                                (
+                                    CONF.WAVES_API.BURN_FEE_AMOUNT +
+                                    +row.transactions_amount +
+                                    +row.transactions_fee
+                                );
+
+            if (row.burn_quantity > 0) {
+                this._burnWalletUnderflow(row, id, data);
+            } else {
+                this._finishBurnWalletsUnderflow(data, 'untouched', id, row);
+            }
+        });
+    }
+
+    /**
+     * @private
+     * @method _finishBurnWalletsUnderflow
+     *
+     * @param {object} data
+     * @param {string} alias
+     * @param {number} id
+     * @param {object} row
+     * @param {object} res
+     */
+    _finishBurnWalletsUnderflow(data, alias, id, row, res) {
+        // Add transaction id
+        if (res && res.id && alias == 'burned') {
+            row.transaction_id = res.id;
+        }
+
+        data.wallets[alias][id] = row;
+
+        data.wallets.check--;
+
+        if (!data.wallets.check) {
+            this._event.pub(this._event.EVENT_NODE_REQUEST_FINISHED, data);
         }
     }
 
@@ -149,8 +325,8 @@ class Self {
      *
      * @param {object} data
      *
-     * @fires this._event.EVENT_NODE_REQUEST_REJECTED
      * @fires this._event.EVENT_NODE_REQUEST_ABORTED
+     * @fires this._event.EVENT_NODE_REQUEST_REJECTED
      * @fires this._event.EVENT_NODE_REQUEST_SUCCEEDED
      */
     _checkBalances(data) {
@@ -208,8 +384,8 @@ class Self {
      *
      * @param {object} data
      *
-     * @fires this._event.EVENT_NODE_REQUEST_REJECTED
      * @fires this._event.EVENT_NODE_REQUEST_ABORTED
+     * @fires this._event.EVENT_NODE_REQUEST_REJECTED
      * @fires this._event.EVENT_NODE_REQUEST_SUCCEEDED
      */
     _checkBalance(data) {
@@ -248,15 +424,14 @@ class Self {
      *
      * @param {object} data
      *
+     * @fires this._event.EVENT_NODE_REQUEST_ABORTED
      * @fires this._event.EVENT_NODE_REQUEST_REJECTED
-     * @fires this._event.EVENT_NODE_REQUEST_REJECTED
-     * @fires this._event.EVENT_NODE_REQUEST_REJECTED
+     * @fires this._event.EVENT_NODE_REQUEST_SUCCEEDED
      */
     _transferWaves(data) {
         var
             params = {
                          fee : CONF.WAVES_API.FEE_AMOUNT,
-                         alias : 'SlackBotTransfer',
                          amount : data.transfer.amount,
                          recipient : data.recipient.address,
                          assetId : CONF.WAVES_API.ASSET_ID,
@@ -265,7 +440,7 @@ class Self {
             request = null;
 
         // Create request JSON object
-        request = transfer(data.emitent.phrase, params);
+        request = transfer(params, data.emitent.phrase);
 
         // Send ready and signed request to Waves api
         Restler.postJson(CONF.WAVES_API.TRANSACTION_URL, request).

@@ -1,7 +1,10 @@
 /**
  * @const {object} CONF
  */
-const CONF = require('../conf.json');
+// const CONF = require('../conf.json');
+const CONF = process.argv[2] ?
+             require(`../conf.${process.argv[2]}.json`) :
+             require('../conf.mainnet.json');
 
 /**
  * @static
@@ -165,17 +168,35 @@ class Self {
 
     /**
      * @static
-     * @const {string} ANSWER_HELP
+     * @const {string} ANSWER_ADMIN_HELP
      */
     static get ANSWER_ADMIN_HELP() {
+        var
+            amount = CONF.WAVES_API.REFILL_AMOUNT,
+            pluralized = Self.pluralize(
+                             amount,
+                             Self.CURRENCY_ONE,
+                             Self.CURRENCY_TWO,
+                             Self.CURRENCY_ALL
+                         );
+
         return Self.ANSWER_HELP +
             '\n\n' +
             '*Admin commands:*\n' +
             '*•* `whois` — get slack user by slack id;\n' +
             '*•* `wallets list` — get list of all wallets addresses;\n' +
             '*•* `wallets update` — create wallets for users added recently;\n' +
+            '*•* `wallets refill` — refill wallets with ' + amount + ' ' + pluralized + ';\n' +
             '*•* `wallets burn` — doesn\'t work yet.' +
             ''
+    }
+
+    /**
+     * @static
+     * @const {string} ANSWER_COMPUTING
+     */
+    static get ANSWER_COMPUTING() {
+        return 'Computing...';
     }
 
     /**
@@ -192,6 +213,14 @@ class Self {
      */
     static get ANSWER_NOTHING_TO_SHOW() {
         return 'Nothing to show';
+    }
+
+    /**
+     * @static
+     * @const {string} ANSWER_OPERATION_FAILED
+     */
+    static get ANSWER_OPERATION_FAILED() {
+        return 'Operation failed';
     }
 
     /**
@@ -308,7 +337,7 @@ class Self {
      */
     static get ANSWER_YOUR_BALANCE_IS() {
         return Self.ANSWER_USER_BALANCE_IS.
-               replace('${user}', 'Your')
+               replace('${user}', 'Your');
     }
 
     /**
@@ -433,6 +462,54 @@ class Self {
 
     /**
      * @static
+     * @const {string} ANSWER_ALL_WALLETS_REFILLED
+     */
+    static get ANSWER_ALL_WALLETS_REFILLED() {
+        return '*${count}* ${pluralized} refilled';
+    }
+
+    /**
+     * @static
+     * @const {number} BURN_TABLE_COL_SPACE
+     */
+    static get BURN_TABLE_COL_SPACE() {
+        return 2;
+    }
+
+    /**
+     * @static
+     * @const {number} BURN_TABLE_COL_WIDTH
+     */
+    static get BURN_TABLE_COL_WIDTH() {
+        return 35;
+    }
+
+    /**
+     * @static
+     * @const {string} STAT_MONTH_TABLE_COL1_TITLE
+     */
+    static get BURN_TABLE_TITLE() {
+        return 'Burned transactions';
+    }
+
+    /**
+     * @static
+     * @const {number} BURN_TABLE_BURNED_WALLETS_TITLE
+     */
+    static get BURN_TABLE_BURNED_WALLETS_TITLE() {
+        return 'Succeeded';
+    }
+
+    /**
+     * @static
+     * @const {number} BURN_TABLE_REJECTED_WALLETS_TITLE
+     */
+    static get BURN_TABLE_REJECTED_WALLETS_TITLE() {
+        return 'Rejected';
+    }
+
+    /**
+     * @static
      * @const {number} STAT_TABLE_COL_SPACE
      */
     static get STAT_TABLE_COL_SPACE() {
@@ -461,14 +538,6 @@ class Self {
      */
     static get STAT_TABLE_IS_EMPTY() {
         return 'No values to count';
-    }
-
-    /**
-     * @static
-     * @const {string} STAT_TABLE_IS_COMPUTING
-     */
-    static get STAT_TABLE_IS_COMPUTING() {
-        return 'Computing...';
     }
 
     /**

@@ -1,7 +1,10 @@
 /**
  * @const {object} CONF
  */
-const CONF = require('../conf.json');
+// const CONF = require('../conf.json');
+const CONF = process.argv[2] ?
+             require(`../conf.${process.argv[2]}.json`) :
+             require('../conf.mainnet.json');
 
 /**
  * @const {pg.Client} Client
@@ -200,6 +203,34 @@ class Self {
         `;
     }
 
+
+    /**
+     * @static
+     * @const {string} SQL_GET_ALL_WALLETS_ADDRESSES_WITH_SUM_TO_BURN
+     */
+    static get SQL_GET_ALL_WALLETS_ADDRESSES_WITH_SUM_TO_BURN() {
+        return `
+            SELECT
+                max(wallets.slack_id) as slack_id,
+                max(wallets.wallet_phrase) as wallet_phrase,
+                max(wallets.wallet_address) as wallet_address,
+                max(wallets.wallet_burned) as wallet_burned,
+                sum(transactions.transaction_amount) AS transactions_amount,
+                (count(transactions.*) * $2) as transactions_fee
+            FROM
+                ${CONF.DB.TRANSACTIONS_TABLE_NAME} as transactions
+            RIGHT JOIN 
+                ${CONF.DB.WALLETS_TABLE_NAME} as wallets
+            ON
+                wallets.slack_id = transactions.emitent_id
+            WHERE
+                wallets.wallet_burned <= $1 AND
+                transactions.transaction_date >= $1
+            GROUP BY
+                transactions.emitent_id
+        `;
+    }
+
     /**
      * @constructor
      *
@@ -240,6 +271,7 @@ class Self {
         this._event.sub(this._event.EVENT_SLACK_BALANCE_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_SLACK_WALLETS_BURN_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_SLACK_WALLETS_LIST_REQUESTED, this._route);
+        this._event.sub(this._event.EVENT_SLACK_WALLETS_REFILL_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_SLACK_WALLETS_UPDATE_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_NODE_WALLETS_CREATED, this._route);
         this._event.sub(this._event.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
@@ -302,6 +334,7 @@ class Self {
 
             //
             case this._event.EVENT_SLACK_WALLETS_LIST_REQUESTED:
+            case this._event.EVENT_SLACK_WALLETS_REFILL_REQUESTED:
                 this._getAllAddresses(event.data);
                 break;
 
@@ -500,13 +533,7 @@ class Self {
      */
     async _getAllAddressesWithSumToBurn(data) {
         var
-            date = new Date(),
-            wallets = await this._request(
-                          Self.SQL_GET_TOP_GENEROSITY,
-                          []
-                      ).catch(this._error);
-
-        var
+            now = new Date(),
             date = new Date(),
             wallets = null;
 
@@ -517,28 +544,26 @@ class Self {
         date.setMinutes(0);
         date.setSeconds(0);
 
-/*
-            SELECT
-                max(wallets.slack_id) as slack_id,
-                max(wallets.wallet_phrase) as wallet_phrase,
-                max(wallets.wallet_address) as wallet_address,
-                max(wallets.wallet_burned) as wallet_burned,
-                transactions.emitent_id,
-                sum(transactions.transaction_amount) AS transactions_amount,
-                (count(transactions.*) * $2) as transactions_fee
-            FROM
-                ${CONF.DB.TRANSACTIONS_TABLE_NAME} as transactions
-            LEFT JOIN 
-                ${CONF.DB.WALLETS_TABLE_NAME} as wallets
-            ON
-                wallets.slack_id = transactions.emitent_id
-            WHERE
-                wallets.wallet_burned >= $1 AND
-                transactions.transaction_date >= $1
-            GROUP BY
-                transactions.emitent_id
-*/
+        // Get wallets info
+        wallets = await this._request(
+                      Self.SQL_GET_ALL_WALLETS_ADDRESSES_WITH_SUM_TO_BURN,
+                      [date, CONF.WAVES_API.FEE_AMOUNT]
+                  ).catch(this._error);
 
+        // No need to go further
+        if (!wallets || !wallets.rowCount) {
+            this._event.pub(this._event.EVENT_STORAGE_GET_WALLETS_TO_BURN_FAILED, data);
+            return;
+        }
+
+        // Add wallets list to request
+        data.wallets.list = wallets.rows;
+        data.wallets.burned = {};
+        data.wallets.rejected = {};
+        data.wallets.untouched = {};
+        data.wallets.check = wallets.rows.length;
+
+        this._event.pub(this._event.EVENT_STORAGE_GET_WALLETS_TO_BURN_SUCCEEDED, data);
     }
 
     /**
@@ -564,13 +589,32 @@ class Self {
             return;
         }
 
-        // Simplify array format
-        wallets = wallets.rows.map((item) => {
-            return item.wallet_address;
-        });
+        // Change array format
+        if (data.wallets.action == 'refill') {
+            wallets = wallets.rows.map((item) => {
+                return {
+                   amount : CONF.WAVES_API.REFILL_AMOUNT,
+                   recipient : item.wallet_address
+                }
+            });
+        } else {
+            wallets = wallets.rows.map((item) => {
+                return item.wallet_address;
+            });
+        }
 
         // Add addresses field to request
         data.wallets.list = wallets;
+
+        // Add number of times massTransfer should be executed
+        if (data.wallets.action == 'refill') {
+            data.wallets.check = Math.ceil(
+                wallets.length / CONF.WAVES_API.REFILL_REQUESTS_LIMIT
+            );
+
+            data.wallets.rejected = [];
+            data.wallets.succeeded = [];
+        }
 
         this._event.pub(this._event.EVENT_STORAGE_GET_WALLETS_LIST_SUCCEEDED, data);
     }

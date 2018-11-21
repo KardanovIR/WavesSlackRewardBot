@@ -44,6 +44,14 @@ class Self {
 
     /**
      * @static
+     * @const {string} EVENT_NODE_REQUEST_FINISHED
+     */
+    get EVENT_NODE_REQUEST_FINISHED() {
+        return 'nodeRequestFinished';
+    }
+
+    /**
+     * @static
      * @const {string} EVENT_NODE_REQUEST_SUCCEEDED
      */
     get EVENT_NODE_REQUEST_SUCCEEDED() {
@@ -128,6 +136,14 @@ class Self {
      */
     get EVENT_SLACK_WALLETS_LIST_REQUESTED() {
         return 'slackWalletsListRequested';
+    }
+
+    /**
+     * @static
+     * @const {string} EVENT_SLACK_WALLETS_REFILL_REQUESTED
+     */
+    get EVENT_SLACK_WALLETS_REFILL_REQUESTED() {
+        return 'slackWalletsRefillRequested';
     }
 
     /**
@@ -312,6 +328,22 @@ class Self {
      */
     get EVENT_STORAGE_GET_WALLETS_LIST_SUCCEEDED() {
         return 'storageGetWalletsListSucceeded';
+    }
+
+    /**
+     * @static
+     * @const {string} EVENT_STORAGE_GET_WALLETS_TO_BURN_FAILED
+     */
+    get EVENT_STORAGE_GET_WALLETS_TO_BURN_FAILED() {
+        return 'storageGetWalletsToBurnFailed';
+    }
+
+    /**
+     * @static
+     * @const {string} EVENT_STORAGE_GET_WALLETS_TO_BURN_SUCCEEDED
+     */
+    get EVENT_STORAGE_GET_WALLETS_TO_BURN_SUCCEEDED() {
+        return 'storageGetWalletsToBurnSucceeded';
     }
 
     /**
