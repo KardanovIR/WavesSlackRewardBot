@@ -36,6 +36,7 @@ Slack bot working with custom crypto tokens based with the Wavesplatform.API.
     "REFILL_CHECKSUM" : 200,
     "REFILL_REQUESTS_LIMIT" : 100,
     "REFILL_SEED" : "",
+    "REFILL_ADDRESS" : "",
     "ASSET_ID" : "{assetId}",
     "TRANSFER_LINK" : "https://wavesexplorer.com/tx/{transactionId}"
   }
