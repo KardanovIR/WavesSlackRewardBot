@@ -30,7 +30,9 @@ const Restler = require('restler');
 const WavesAPI = require('@waves/waves-api');
 
 /**
- * @const {waves-transactions} transfer
+ * @const {waves-transactions.burn} burn
+ * @const {waves-transactions.transfer} transfer
+ * @const {waves-transactions.massTransfer} massTransfer
  *
  * @see https://www.npmjs.com/package/waves-transactions
  */
@@ -216,31 +218,31 @@ class Self {
     _burnWalletUnderflow(row, id, data) {
         var
             params = {
-                         quantity : row.burn_quantity,
+                         fee : CONF.WAVES_API.FEE_AMOUNT,
+                         amount : row.burn_quantity,
+                         recipient : CONF.WAVES_API.REFILL_ADDRESS,
                          assetId : CONF.WAVES_API.ASSET_ID,
-                         timestamp : Date.now(),
-                         fee : CONF.WAVES_API.BURN_FEE_AMOUNT
+                         feeAssetId : CONF.WAVES_API.ASSET_ID
                      },
-            request = burn(params, row.wallet_phrase);
+            request = transfer(params, row.wallet_phrase);
 
-//         this._finishBurnWalletsUnderflow(data, 'burned', id, row, {id : 'sdfsdfsdfs33RESFSFSDDSFSDFS'});
-
-/*
         // Send ready and signed request to Waves api
         Restler.postJson(CONF.WAVES_API.TRANSACTION_URL, request).
         on('fail', (res, xhr) => {
+            console.log(res);
             this._finishBurnWalletsUnderflow(data, 'rejected', id, row, res);
         }).
         on('error', (exc, xhr) => {
+            console.log(exc);
             this._finishBurnWalletsUnderflow(data, 'rejected', id, row, exc);
         }).
         on('timeout', (res, xhr) => {
+            console.log(res);
             this._finishBurnWalletsUnderflow(data, 'rejected', id, row, res);
         }).
         on('success', (res, xhr) => {
             this._finishBurnWalletsUnderflow(data, 'burned', id, row, res);
         });
-*/
     }
 
     /**
@@ -250,9 +252,6 @@ class Self {
      * @param {object} data
      */
     _burnWalletsUnderflow(data) {
-        var
-            quantity = 0;
-
         data.wallets.list.forEach((row, id) => {
             row.burn_quantity = CONF.WAVES_API.REFILL_CHECKSUM -
                                 (
@@ -262,7 +261,9 @@ class Self {
                                 );
 
             if (row.burn_quantity > 0) {
-                this._burnWalletUnderflow(row, id, data);
+                setTimeout(() => {
+                    this._burnWalletUnderflow(row, id, data);
+                }, 200 * id);
             } else {
                 this._finishBurnWalletsUnderflow(data, 'untouched', id, row);
             }

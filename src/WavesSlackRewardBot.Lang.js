@@ -147,22 +147,22 @@ class Self {
             emojis = ':' + CONF.SLACK_API.REWARDED_REACTIONS.join(': :') + ':';
 
         return '' +
-            '*Привет!*\n\n' +
-            'Меня зовут Билли и я дельфин. Я могу помогать отправлять спасибо токены твоим коллегам. Каждый месяц на кошелек, созданный для каждого сотрудника компании, перечисляется 100 монет. Вы можете раздавать их своим коллегам.\n\n' +
-            '*Это можно сделать тремя способами:*\n' +
-            '*1.* Напиши в любом канале, куда меня пригласили, команду вида `@Billy 2 спасибо @sasha` и я отправлю 2 монеты указанному пользователю;\n' +
-            '*2.* Добавь эмодзи ' + emojis + ' к сообщению пользователя и я отправлю ему 1 монету;\n' +
-            '*3.* Напиши мне в приват `10 спасибо @sasha` и я отправлю 10 монет указанному пользователю.\n\n' +
-            '*Также в привате доступны следующие команды:*\n' +
-            '*•* `address` — вовзращает адрес вашего кошелька;\n' +
-            '*•* `balance` — возращает ваш баланс;\n' +
-            '*•* `balance @sasha` — возращает баланс указанного пользователя;\n' +
-            '*•* `help` — список доступных команд;\n' +
-            '*•* `ping` — проверка жив ли бот;\n' +
-            '*•* `seed` — сид фраза вашего кошелька;\n' +
-            '*•* `stat month` — статистика по полученным токенам за месяц для всех сотрудников;\n' +
-            '*•* `stat balances` — накопленный итог всех транзакций для всех сотрудников;\n' +
-            '*•* `stat generosity` — статистика по отправленным токенам за месяц для всех сотрудников.\n' +
+            '*Hi!*\n\n' +
+            'My name\'s Billy and I\'m a dolphin. Twice a month you get 100 ThanksCoins on your wallet. And I can help you to transfer them to your colleagues.\n\n' +
+            '*It can be done in three ways:*\n' +
+            '*1.* Write a command like `@Billy 2 thanks @sasha` on the channel I\'ve been invited to and I\'ll transfer 2 thankscoins to the specified user;\n' +
+            '*2.* Add emodji ' + emojis + ' to any message on the channel and I\'ll transfer 1 thankscoin to the author of the message;\n' +
+            '*3.* Write me an IM with command like `10 thanks @sasha` and I\'ll transfer 10 thankscoins to the specified user.\n\n' +
+            '*Also you can use following command in my IM:*\n' +
+            '*•* `help` — list of the available commands;\n' +
+            '*•* `address` — returns your wallet address;\n' +
+            '*•* `balance` — returns your wallet balance;\n' +
+            '*•* `balance @sasha` — returns wallet balance of the user you specified;\n' +
+            '*•* `ping` — check out if I\'m online;\n' +
+            '*•* `seed` — seed phrace of your wallet;\n' +
+            '*•* `stat month` — statistics of received tokens for current month;\n' +
+            '*•* `stat generosity` — statistics for transferred thankscoins for current month;\n' +
+            '*•* `stat balances` — current balances amounts at the current moment.' +
             '';
     }
 
@@ -172,23 +172,31 @@ class Self {
      */
     static get ANSWER_ADMIN_HELP() {
         var
-            amount = CONF.WAVES_API.REFILL_AMOUNT,
-            pluralized = Self.pluralize(
-                             amount,
-                             Self.CURRENCY_ONE,
-                             Self.CURRENCY_TWO,
-                             Self.CURRENCY_ALL
-                         );
+            burnAmount = CONF.WAVES_API.REFILL_CHECKSUM,
+            burnPluralized = Self.pluralize(
+                                 burnAmount,
+                                 Self.CURRENCY_ONE,
+                                 Self.CURRENCY_TWO,
+                                 Self.CURRENCY_ALL
+                             ),
+            refillAmount = CONF.WAVES_API.REFILL_AMOUNT,
+            refillPluralized = Self.pluralize(
+                                   refillAmount,
+                                   Self.CURRENCY_ONE,
+                                   Self.CURRENCY_TWO,
+                                   Self.CURRENCY_ALL
+                               );
 
         return Self.ANSWER_HELP +
             '\n\n' +
             '*Admin commands:*\n' +
             '*•* `whois` — get slack user by slack id;\n' +
+            '*•* `whoami` — get slack user for my slack id;\n' +
             '*•* `wallets list` — get list of all wallets addresses;\n' +
             '*•* `wallets update` — create wallets for users added recently;\n' +
-            '*•* `wallets refill` — refill wallets with ' + amount + ' ' + pluralized + ';\n' +
-            '*•* `wallets burn` — doesn\'t work yet.' +
-            ''
+            '*•* `wallets refill` — refill wallets with ' + refillAmount + ' ' + refillPluralized + ' twice a month;\n' +
+            '*•* `wallets burn` — burns ' + burnAmount + ' ' + burnPluralized + ' once a month.' +
+            '';
     }
 
     /**

@@ -203,7 +203,6 @@ class Self {
         `;
     }
 
-
     /**
      * @static
      * @const {string} SQL_GET_ALL_WALLETS_ADDRESSES_WITH_SUM_TO_BURN
@@ -219,15 +218,29 @@ class Self {
                 (count(transactions.*) * $2) as transactions_fee
             FROM
                 ${CONF.DB.TRANSACTIONS_TABLE_NAME} as transactions
-            RIGHT JOIN 
+            RIGHT JOIN
                 ${CONF.DB.WALLETS_TABLE_NAME} as wallets
             ON
-                wallets.slack_id = transactions.emitent_id
+                wallets.slack_id = transactions.emitent_id AND
+                transactions.transaction_date >= $1
             WHERE
                 wallets.wallet_burned <= $1 AND
-                transactions.transaction_date >= $1
+                wallets.wallet_address != $3
             GROUP BY
-                transactions.emitent_id
+                wallets.slack_id
+        `;
+    }
+
+    /**
+     * @static
+     * @const {string} SQL_UPDATE_BURNED_DATE
+     */
+    static get SQL_UPDATE_BURNED_DATE() {
+        return `
+            UPDATE
+                ${CONF.DB.WALLETS_TABLE_NAME}
+            SET
+                wallet_burned = $1
         `;
     }
 
@@ -274,6 +287,7 @@ class Self {
         this._event.sub(this._event.EVENT_SLACK_WALLETS_REFILL_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_SLACK_WALLETS_UPDATE_REQUESTED, this._route);
         this._event.sub(this._event.EVENT_NODE_WALLETS_CREATED, this._route);
+        this._event.sub(this._event.EVENT_NODE_REQUEST_FINISHED, this._route);
         this._event.sub(this._event.EVENT_NODE_REQUEST_SUCCEEDED, this._route);
     }
 
@@ -319,6 +333,19 @@ class Self {
             // 
             case this._event.EVENT_NODE_WALLETS_CREATED:
                 this._createNewUsers(event.data);
+                break;
+
+            // 
+            case this._event.EVENT_NODE_REQUEST_FINISHED:
+                if (event.data.wallets) {
+                    switch (event.data.wallets.action) {
+
+                        case 'burn':
+                            this._updateBurnedDate(event.data);
+                            break;
+
+                    }
+                }
                 break;
 
             // Save transaction info
@@ -520,8 +547,22 @@ class Self {
     }
 
     /**
-     * @todo
+     * @async
+     * @private
+     * @method _updateBurnedDate
      *
+     * @param {object} data
+     */
+    async _updateBurnedDate(data) {
+        var
+            now = new Date(),
+            update = await this._request(
+                         Self.SQL_UPDATE_BURNED_DATE,
+                         [now]
+                     );
+    }
+
+    /**
      * @async
      * @private
      * @method _getAllAddresses
@@ -547,7 +588,7 @@ class Self {
         // Get wallets info
         wallets = await this._request(
                       Self.SQL_GET_ALL_WALLETS_ADDRESSES_WITH_SUM_TO_BURN,
-                      [date, CONF.WAVES_API.FEE_AMOUNT]
+                      [date, CONF.WAVES_API.FEE_AMOUNT, CONF.WAVES_API.REFILL_ADDRESS]
                   ).catch(this._error);
 
         // No need to go further

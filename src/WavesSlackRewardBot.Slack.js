@@ -413,16 +413,18 @@ class Self {
             // Upload wallets burned transactions
             case this._event.EVENT_NODE_REQUEST_FINISHED:
 
-                switch (event.data.wallets.action) {
+                if (event.data.wallets) {
+                    switch (event.data.wallets.action) {
 
-                    case 'burn':
-                        this._uploadBurnedWallets(event.data);
-                        break;
+                        case 'burn':
+                            this._uploadBurnedWallets(event.data);
+                            break;
 
-                    case 'refill':
-                        this._uploadRefilledWallets(event.data);
-                        break;
+                        case 'refill':
+                            this._uploadRefilledWallets(event.data);
+                            break;
 
+                    }
                 }
                 break;
 
@@ -831,7 +833,7 @@ class Self {
             user = null;
 
         interval += data.stat.alias != 'balances' ? '1-' : '';
-        interval += `${now.getDate()}.${now.getMonth()}.${now.getFullYear()}`;
+        interval += `${now.getDate()}.${now.getMonth() + 1}.${now.getFullYear()}`;
 
         // Table title
         buffer += `${title} (${interval}):\n\n`;
@@ -880,7 +882,7 @@ class Self {
                 string2 = (item.transaction_amount + '').padStart(width2, ' ');
                 buffer += ` ${string1}  ${string2}\n`;
 
-                sum += +item[1];
+                sum += +item.transaction_amount;
             }
 
             // Count totals
@@ -1039,6 +1041,7 @@ class Self {
                 this._parseCommandGetBalance(event);
                 break;
 
+            // Wallets commands
             case Self.CMD_WALLETS:
                 this._parseCommandWallets(event);
                 break;
