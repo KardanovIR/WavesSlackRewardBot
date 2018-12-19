@@ -1,0 +1,10 @@
+{
+  "apps": [{
+    "name": "BillyBot",
+    "script": "./run.js",
+    "cwd": "/home/alunev/slackbot_test",
+    "error_file": "./logs/app.err.log",
+    "out_file": "./logs/app.out.log", 
+    "exec_mode": "fork_mode"
+  }]
+}

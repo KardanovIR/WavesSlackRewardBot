@@ -707,9 +707,8 @@ class Self {
         }
 
         // Set emitent address
-        data.emitent.address = wallet.wallet_address;
+        data.address.id = wallet.wallet_address;
 
-        //
         this._event.pub(this._event.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED, data);
     }
 
@@ -751,11 +750,23 @@ class Self {
      */
     async _checkWallet(data) {
         var
-            id = (data.recipient ? data.recipient.id : data.emitent.id),
-            wallet = await this._request(
-                          Self.SQL_GET_WALLET_ID,
-                          [id]
-                      ).catch(this._error);
+            id = '',
+            wallet = null;
+
+        // Get slack id from different sections of request object
+        if (data.address) {
+            id = data.address.uid;
+        } else if (data.recipient) {
+            id = data.recipient.id;
+        } else {
+            id = data.emitent.id;
+        }
+
+        // Send SQL request
+        wallet = await this._request(
+                      Self.SQL_GET_WALLET_ID,
+                      [id]
+                  ).catch(this._error);
 
         // No need to go further
         if (!wallet || !wallet.rowCount) {

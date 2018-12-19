@@ -190,8 +190,9 @@ class Self {
         return Self.ANSWER_HELP +
             '\n\n' +
             '*Admin commands:*\n' +
-            '*•* `whois` — get slack user by slack id;\n' +
+            '*•* `whois` — get slack user by slack id or slack id by @user;\n' +
             '*•* `whoami` — get slack user for my slack id;\n' +
+            '*•* `address @sasha` — get wallet address for given user;\n' +
             '*•* `wallets list` — get list of all wallets addresses;\n' +
             '*•* `wallets update` — create wallets for users added recently;\n' +
             '*•* `wallets refill` — refill wallets with ' + refillAmount + ' ' + refillPluralized + ' twice a month;\n' +
@@ -319,7 +320,16 @@ class Self {
      * @const {string} ANSWER_YOUR_ADDRESS_IS
      */
     static get ANSWER_YOUR_ADDRESS_IS() {
-        return 'Your wallet address is *${address}*';
+        return Self.ANSWER_USER_ADDRESS_IS.
+               replace('${user}', 'Your');
+    }
+
+    /**
+     * @static
+     * @const {string} ANSWER_USER_ADDRESS_IS
+     */
+    static get ANSWER_USER_ADDRESS_IS() {
+        return '${user} wallet address is *${address}*';
     }
 
     /**

@@ -384,7 +384,7 @@ class Self {
 
             // Answer that my wallet address request succeeded
             case this._event.EVENT_STORAGE_ADDRESS_REQUEST_SUCCEDED:
-                this._answerMyAddress(event.data);
+                this._answerUserAddress(event.data);
                 break;
 
             // Answer that stat request failed
@@ -654,14 +654,22 @@ class Self {
     /**
      * @async
      * @private
-     * @method _answerMyAddress
+     * @method _answerUserAddress
      *
      * @param {object} data
      */
-    async _answerMyAddress(data) {
+    async _answerUserAddress(data) {
         var
-            text = this._lang.ANSWER_YOUR_ADDRESS_IS.
-                   replace('${address}', data.emitent.address);
+            text = '';
+
+        if (data.address.uid == data.emitent.id) {
+            text = this._lang.ANSWER_YOUR_ADDRESS_IS;
+        } else {
+            text = this._lang.ANSWER_USER_ADDRESS_IS.
+                   replace('${user}', Self._getTaggedUser(data.address.uid));
+        }
+
+        text = text.replace('${address}', data.address.id);
 
         this._answer(data.channel.id, text);
     }
@@ -792,7 +800,6 @@ class Self {
                    ));
 
         this._answer(data.channel.id, text);
-//         console.log('_uploadRefilledWallets(data)', data);
     }
 
     /**
@@ -924,10 +931,17 @@ class Self {
         if (!this._isAdmin(event.user)) {
             this._answer(data.channel.id, this._lang.ANSWER_ADMIN_ACCESS_REQUIRED);
             return;
+        } else if (!who) {
+            return;
         }
 
+        // Get tagged user or just user id
+        who = who.substring(0, 2) == '<@' ?
+              who.replace('<', '').replace('>', '').replace('@', '') :
+              Self._getTaggedUser(who);
+
         // Answer
-        this._answer(event.channel, Self._getTaggedUser(who), event.user)
+        this._answer(event.channel, who, event.user)
     }
 
     /**
@@ -1030,10 +1044,7 @@ class Self {
 
             // Get my wallet address
             case Self.CMD_GET_ADDRESS:
-                this._event.pub(this._event.EVENT_SLACK_ADDRESS_REQUESTED, {
-                    channel : {id : event.channel},
-                    emitent : {id : event.user}
-                });
+                this._parseCommandGetAddress(event);
                 break;
 
             // Get my wallet balance
@@ -1050,6 +1061,30 @@ class Self {
     }
 
     /**
+     * @private
+     * @method _parseCommandGetAddress
+     *
+     * @param {Event} event
+     */
+    _parseCommandGetAddress(event) {
+        var
+            user = event.user,
+            args = event.text.split(' ');
+
+        // Change user to given in second argument
+        if (this._isAdmin(event.user) && args[1]) {
+            user = args[1].replace('<', '').replace('>', '').replace('@', '');
+        }
+
+        this._event.pub(this._event.EVENT_SLACK_ADDRESS_REQUESTED, {
+            channel : {id : event.channel},
+            emitent : {id : event.user},
+            address : {uid : user}
+        });
+    }
+
+    /**
+     ; @async
      * @private
      * @method _parseCommandWallets
      *
