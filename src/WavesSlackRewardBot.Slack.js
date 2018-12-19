@@ -183,7 +183,7 @@ class Self {
     get REGEXP_INSTANT_MESSAGE() {
         return '(\\d+)[\\s\\S]+(' +
                this._lang.CURRENCY_ALIASES.join('|') +
-               ')[\\s\\S]+<@([^>]+)>[\\s\\S]*';
+               ')[\\s\\S]+<@([^>]+)>([\\s\\S]*)';
     }
 
     /**
@@ -621,7 +621,10 @@ class Self {
 
         // Tell recipient that transfer happened
         setTimeout(() => {
-            text = this._lang.ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT.
+            text = data.transfer.message ?
+                   this._lang.ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT_WITH_MESSAGE :
+                   this._lang.ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT;
+            text = text.
                    replace('${user}', Self._getTaggedUser(data.emitent.id)).
                    replace('${link}', link).
                    replace('${amount}', data.transfer.amount).
@@ -630,7 +633,8 @@ class Self {
                        this._lang.CURRENCY_ONE,
                        this._lang.CURRENCY_TWO,
                        this._lang.CURRENCY_ALL
-                   ));
+                   )).
+                   replace('${message}', data.transfer.message);
 
             this._answer(data.channel.id, text, data.recipient.id, true);
         }, CONF.SLACK_API.MESSAGE_TIMEOUT);
@@ -1259,7 +1263,7 @@ class Self {
      */
     _parseInstantMessage(event) {
         var
-            waves = 0,
+            message = '',
             rexp = new RegExp('^' + this.REGEXP_INSTANT_MESSAGE, 'g'),
             args = event.text.match(rexp);
 
@@ -1270,16 +1274,20 @@ class Self {
         }
 
         // Get recipient id and transfer amount
-        args = args ? args[0].replace(rexp, '$1 $3').split(' ') : null;
+        args = args ? args[0].replace(rexp, '$1 $3 $4').split(' ') : null;
+
+        message = args.length > 2 ? args.slice(2).join(' ') : '';
+        message = message.replace(/^\s{1,}/, '').replace(/\s{1,}$/, '');
+        message = message.substring(0, 150);
 
         // No need to go further
-        if (!(args instanceof Array) || args.length != 2) {
+        if (!(args instanceof Array)) {
             this._answer(event.channel, this._lang.ANSWER_INCORRECT_SYNTAX, event.user);
             return;
         }
 
         // Create and send transfer request object
-        this._finishParsing(event.channel, true, event.user, args[1], args[0]);
+        this._finishParsing(event.channel, true, event.user, args[1], args[0], true, message);
     }
 
     /**
@@ -1319,10 +1327,11 @@ class Self {
      * @param {number} recipient
      * @param {string} amount
      * @param {boolean} answer
+     * @param {string} message
      *
      * @fires this._event.EVENT_SLACK_WAVES_GRANTED
      */
-    _finishParsing(channel, im, emitent, recipient, amount, answer = true) {
+    _finishParsing(channel, im, emitent, recipient, amount, answer = true, message = '') {
         amount = Math.floor(amount);
 
         // No need to go further
@@ -1345,7 +1354,7 @@ class Self {
             channel : {id : channel},
             emitent : {id : emitent},
             recipient : {id : recipient},
-            transfer : {amount}
+            transfer : {amount, message}
         });
 
         // Send a success answer

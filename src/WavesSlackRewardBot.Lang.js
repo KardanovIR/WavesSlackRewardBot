@@ -268,6 +268,14 @@ class Self {
 
     /**
      * @static
+     * @const {string} ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT_WITH_MESSAGE
+     */
+    static get ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT_WITH_MESSAGE() {
+        return Self.ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT + '\n> ${message}';
+    }
+
+    /**
+     * @static
      * @const {string} ANSWER_THANK_YOU
      */
     static get ANSWER_THANK_YOU() {

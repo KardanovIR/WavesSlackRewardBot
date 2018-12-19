@@ -740,7 +740,7 @@ class Self {
     /**
      * @async
      * @private
-     * @method _checkWallets
+     * @method _checkWallet
      *
      * @param {object} data
      *

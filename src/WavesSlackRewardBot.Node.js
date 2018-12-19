@@ -229,15 +229,12 @@ class Self {
         // Send ready and signed request to Waves api
         Restler.postJson(CONF.WAVES_API.TRANSACTION_URL, request).
         on('fail', (res, xhr) => {
-            console.log(res);
             this._finishBurnWalletsUnderflow(data, 'rejected', id, row, res);
         }).
         on('error', (exc, xhr) => {
-            console.log(exc);
             this._finishBurnWalletsUnderflow(data, 'rejected', id, row, exc);
         }).
         on('timeout', (res, xhr) => {
-            console.log(res);
             this._finishBurnWalletsUnderflow(data, 'rejected', id, row, res);
         }).
         on('success', (res, xhr) => {

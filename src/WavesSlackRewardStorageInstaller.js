@@ -31,7 +31,8 @@ let WavesSlackRewardStorageInstaller = (function() {
                     slack_id varchar(20) PRIMARY KEY,
                     wallet_phrase text NOT NULL,
                     wallet_address varchar(50) NOT NULL,
-                    wallet_created timestamp NOT NULL
+                    wallet_created timestamp NOT NULL,
+                    wallet_burned timestamp NOT NULL
                 );
             `;
         }
@@ -48,7 +49,7 @@ let WavesSlackRewardStorageInstaller = (function() {
                     recipient_id varchar(20) NOT NULL,
                     transaction_hash varchar(150) NOT NULL,
                     transaction_date timestamp NOT NULL,
-                    transaction_amount int not null
+                    transaction_amount int NOT NULL
                 );
             `;
         }
