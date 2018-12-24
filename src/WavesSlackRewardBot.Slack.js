@@ -1334,7 +1334,7 @@ class Self {
             false,
             event.user,
             event.item_user,
-            1,
+            CONF.WAVES_API.EMOJI_AMOUNT,
             false,
             link && text ? send : ''
         );

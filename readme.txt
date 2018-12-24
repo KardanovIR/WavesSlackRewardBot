@@ -32,6 +32,7 @@
         "REQUEST_TIMEOUT" : 5000,
         "CONFIG_ALIAS" : "{TYPE_OF_CONFIG}",
         "FEE_AMOUNT" : 1,
+        "EMOJI_AMOUNT" : 1,
         "BURN_FEE_AMOUNT" : 1,
         "REFILL_AMOUNT" : 100,
         "REFILL_CHECKSUM" : 200,
