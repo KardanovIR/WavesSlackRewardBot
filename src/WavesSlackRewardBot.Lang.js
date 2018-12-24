@@ -268,6 +268,14 @@ class Self {
 
     /**
      * @static
+     * @const {string} ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT_FOR_REACTION
+     */
+    static get ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT_FOR_REACTION() {
+        return 'Message: <${link}|${text}>';
+    }
+
+    /**
+     * @static
      * @const {string} ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT_WITH_MESSAGE
      */
     static get ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT_WITH_MESSAGE() {

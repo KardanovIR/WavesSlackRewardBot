@@ -1233,6 +1233,7 @@ class Self {
     _parseChannelMessage(event) {
         var
             waves = 0,
+            message = '',
             rexp = new RegExp(Self._getTaggedUser(this._me) + '\\s+' + this.REGEXP_INSTANT_MESSAGE, 'g'),
             args = event.text.match(rexp);
 
@@ -1243,16 +1244,20 @@ class Self {
         }
 
         // Get recipient id and transfer amount
-        args = args ? args[0].replace(rexp, '$1 $3').split(' ') : null;
+        args = args ? args[0].replace(rexp, '$1 $3 $4').split(' ') : null;
+
+        message = args.length > 2 ? args.slice(2).join(' ') : '';
+        message = message.replace(/^\s{1,}/, '').replace(/\s{1,}$/, '');
+        message = message.substring(0, 150);
 
         // No need to go further
-        if (!(args instanceof Array) || args.length != 2) {
+        if (!(args instanceof Array)) {
             this._answer(event.channel, this._lang.ANSWER_INCORRECT_SYNTAX, event.user);
             return;
         }
 
         // Create and send transfer request object
-        this._finishParsing(event.channel, false, event.user, args[1], args[0]);
+        this._finishParsing(event.channel, false, event.user, args[1], args[0], true, message);
     }
 
     /**
@@ -1291,20 +1296,37 @@ class Self {
     }
 
     /**
+     * @async
      * @private
      * @method _parseReactionMessage
      *
      * @param {Event} event
      */
-    _parseReactionMessage(event) {
+    async _parseReactionMessage(event) {
+        var
+            link = '',
+            text = '',
+            send = '',
+            message = await this._web.chat.getPermalink({
+                          channel : event.item.channel,
+                          message_ts : event.item.ts
+                      }).catch(this._error);
+
         // No need to go further
-        if (!event.item_user) {
+        if (!event.item_user || !message || !message.permalink) {
             // Don't know who's the recipient
             return;
         } else if (CONF.SLACK_API.REWARDED_REACTIONS.indexOf(event.reaction) === -1) {
             // Filter unholded reactions
             return;
         }
+
+        // Get and format permalink to message
+        link = message.permalink;
+        text = link ? link.split('/').slice(4).join('/') : '';
+        send = this._lang.ANSWER_TRANSFER_COMPLETED_FOR_RECIPIENT_FOR_REACTION.
+               replace('${link}', link).
+               replace('${text}', text);
 
         // Create and send transfer request object
         this._finishParsing(
@@ -1313,7 +1335,8 @@ class Self {
             event.user,
             event.item_user,
             1,
-            false
+            false,
+            link && text ? send : ''
         );
     }
 
