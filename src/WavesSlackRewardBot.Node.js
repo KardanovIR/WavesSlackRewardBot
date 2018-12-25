@@ -23,11 +23,18 @@ const CONF = process.argv[2] ?
 const Restler = require('restler');
 
 /**
- * @const {@waves/waves-api} WavesAPI
+ * @const {bip39} Bip39
  *
- * @see https://github.com/wavesplatform/waves-api
+ * @see https://www.npmjs.com/package/bip39
  */
-const WavesAPI = require('@waves/waves-api');
+const Bip39 = require('bip39');
+
+/**
+ * @const {waves-crypto} WC
+ *
+ * @see https://github.com/wavesplatform/waves-crypto
+ */
+const WC = require('waves-crypto');
 
 /**
  * @const {waves-transactions.burn} burn
@@ -65,13 +72,7 @@ class Self {
         this._live();
 
         // Initiate
-        try {
-            this._module = WavesAPI.create(WavesAPI[CONF.WAVES_API.CONFIG_ALIAS]);
-            this._event.pub(this._event.EVENT_NODE_CONNECTED);
-        } catch (exc) {
-            this._event.pub(this._event.EVENT_NODE_NOT_CONNECTED);
-            this._error(exc);
-        }
+        this._event.pub(this._event.EVENT_NODE_CONNECTED);
     }
 
     /**
@@ -300,16 +301,21 @@ class Self {
      */
     _createNewWallets(data) {
         var
-            seed = null;
+            phrase = '',
+            address = '',
+            network = CONF.WAVES_API.CONFIG_ALIAS == 'TESTNET_CONFIG' ?
+                      'T' :
+                      undefined;
 
         // Get seed for each
         data.wallets.list = data.wallets.list.map((uid) => {
-            seed = this._module.Seed.create();
+            phrase = Bip39.generateMnemonic();
+            address = WC.address(phrase, network);
 
             return {
                 slack_id : uid,
-                wallet_phrase : seed.phrase,
-                wallet_address : seed.address
+                wallet_phrase : phrase,
+                wallet_address : address
             }
         });
 
