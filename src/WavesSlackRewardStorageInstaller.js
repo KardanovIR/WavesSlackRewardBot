@@ -1,7 +1,5 @@
 // Conf
-const CONF = process.argv[2] ?
-             require(`../conf.${process.argv[2]}.json`) :
-             require('../conf.mainnet.json');
+const CONF = require('./WavesSlackRewardBot.Conf.js');
 
 // libs
 const {Client} = require('pg');
