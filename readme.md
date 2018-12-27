@@ -5,7 +5,7 @@ Slack bot working with custom crypto tokens based with the Wavesplatform.API.
 ## Installation
 
 * Create Waves wallet [here](https://client.wavesplatform.com) or you can use existant wallet;
-* Create a [token](https://docs.wavesplatform.com/en/waves-client/assets-management/issue-an-asset.html) of sponsored type;
+* Create a [token](https://docs.wavesplatform.com/en/waves-client/assets-management/issue-an-asset.html "How to create tokens") of [sponsored](https://docs.wavesplatform.com/en/waves-client/assets-management/sponsored-transaction.html "What is sponsored assets") type;
 * Create a [bot](https://get.slack.help/hc/en-us/articles/115005265703-Create-a-bot-for-your-workspace) in your slack namespace;
 * `git clone git@github.com:Shushik/WavesSlackRewardBot.git`;
 * `cd WavesSlackRewardBot`;
