@@ -23,6 +23,7 @@ Slack bot working with custom crypto tokens based with the Wavesplatform.API.
 * Stop bot with `Ctrl+C`;
 * Open `conf.mainnet.json` and add your slack ID into ADMINS_LIST section;
 * Run bot again using `pm2 start BillyBot`;
+* Type `wallets update` to create wallets for your workspace users;
 * Type `help` in bot PM to get list of available commands;
 * ...;
 * PROFIT!.
