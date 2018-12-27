@@ -4,28 +4,28 @@ Slack bot working with custom crypto tokens based with the Wavesplatform.API.
 
 ## Installation
 
-- Create Waves wallet [here](https://client.wavesplatform.com) or you can use existant wallet;
-- Create a [token](https://docs.wavesplatform.com/en/waves-client/assets-management/issue-an-asset.html) of [sponsored](https://docs.wavesplatform.com/en/waves-client/assets-management/sponsored-transaction.html) type;
-- Create a [bot](https://get.slack.help/hc/en-us/articles/115005265703-Create-a-bot-for-your-workspace) in your slack namespace;
-- `git clone git@github.com:Shushik/WavesSlackRewardBot.git`;
-- `cd WavesSlackRewardBot`;
-- Install npm and postgres if not yet;
-- `npm install`;
-- Create [user](https://www.postgresql.org/docs/9.5/sql-createuser.html) and [database](https://www.postgresql.org/docs/9.1/sql-createdatabase.html) for postgres;
-- Create `conf.mainnet.json` file in the project root directory and copy the config structure below;
-- Fill {UPPERCASED_PLACEHOLDERS} in config with the needed values except ADMINS_LIST field, which will be tuned further;
-- `node install.js` — will create tables with the neede structure in DB.
+* Create Waves wallet [here](https://client.wavesplatform.com) or you can use existant wallet;
+* Create a [token](https://docs.wavesplatform.com/en/waves-client/assets-management/issue-an-asset.html) of [sponsored](https://docs.wavesplatform.com/en/waves-client/assets-management/sponsored-transaction.html) type;
+* Create a [bot](https://get.slack.help/hc/en-us/articles/115005265703-Create-a-bot-for-your-workspace) in your slack namespace;
+* `git clone git@github.com:Shushik/WavesSlackRewardBot.git`;
+* `cd WavesSlackRewardBot`;
+* Install npm and postgres if not yet;
+* `npm install`;
+* Create [user](https://www.postgresql.org/docs/9.5/sql-createuser.html) and [database](https://www.postgresql.org/docs/9.1/sql-createdatabase.html) for postgres;
+* Create `conf.mainnet.json` file in the project root directory and copy the config structure below;
+* Fill {UPPERCASED_PLACEHOLDERS} in config with the needed values except ADMINS_LIST field, which will be tuned further;
+* `node install.js` — will create tables with the neede structure in DB.
 
 ## After installation
 
-- Run bot with `node run.js`;
-- Go to bot PM and type `whoami` and get you slack ID;
-- Stop bot with `Ctrl+C`;
-- Open `conf.mainnet.json` and add your slack ID into ADMINS_LIST section;
-- Run bot again using `pm2 start BillyBot`;
-- Type `help` in bot PM to get list of available commands;
-- ...;
-- PROFIT!.
+* Run bot with `node run.js`;
+* Go to bot PM and type `whoami` and get you slack ID;
+* Stop bot with `Ctrl+C`;
+* Open `conf.mainnet.json` and add your slack ID into ADMINS_LIST section;
+* Run bot again using `pm2 start BillyBot`;
+* Type `help` in bot PM to get list of available commands;
+* ...;
+* PROFIT!.
 
 ## Several bots running
 
